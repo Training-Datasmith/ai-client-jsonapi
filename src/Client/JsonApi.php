@@ -132,7 +132,7 @@ class JsonApi
 	 */
 
 
-	private static $objects = [];
+	private static array $objects = [];
 
 
 	/**
@@ -158,7 +158,7 @@ class JsonApi
 			$name = $context->config()->get( 'client/jsonapi/' . $path . 'name', 'Standard' );
 		}
 
-		$interface = 'Aimeos\\Client\\JsonApi\\Iface';
+		$interface = \Aimeos\Client\JsonApi\Iface::class;
 		$classname = 'Aimeos\\Client\\JsonApi\\' . str_replace( '/', '\\', ucwords( $path, '/' ) ) . $name;
 
 		if( class_exists( $classname ) === false ) {
@@ -180,7 +180,7 @@ class JsonApi
 	 * @param string $classname Full name of the class for which the object should be returned
 	 * @param \Aimeos\Client\JsonApi\Iface|null $client JSON API client object
 	 */
-	public static function inject( string $classname, ?\Aimeos\Client\JsonApi\Iface $client = null )
+	public static function inject( string $classname, ?\Aimeos\Client\JsonApi\Iface $client = null ): void
 	{
 		self::$objects['\\' . ltrim( $classname, '\\' )] = $client;
 	}
@@ -241,9 +241,8 @@ class JsonApi
 		}
 
 		$classprefix = '\\Aimeos\\Client\\JsonApi\\Common\\Decorator\\';
-		$client = self::addDecorators( $context, $client, $path, $decorators, $classprefix );
 
-		return $client;
+		return self::addDecorators( $context, $client, $path, $decorators, $classprefix );
 	}
 
 

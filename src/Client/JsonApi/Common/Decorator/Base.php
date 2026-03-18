@@ -24,9 +24,6 @@ abstract class Base
 	extends \Aimeos\Client\JsonApi\Base
 	implements \Aimeos\Client\JsonApi\Common\Decorator\Iface
 {
-	private \Aimeos\Client\JsonApi\Iface $client;
-
-
 	/**
 	 * Initializes the client decorator.
 	 *
@@ -34,12 +31,10 @@ abstract class Base
 	 * @param \Aimeos\MShop\ContextIface $context Context object with required objects
 	 * @param string $path Name of the client, e.g "product"
 	 */
-	public function __construct( \Aimeos\Client\JsonApi\Iface $client,
+	public function __construct( private \Aimeos\Client\JsonApi\Iface $client,
 		\Aimeos\MShop\ContextIface $context, string $path )
 	{
 		parent::__construct( $context, $path );
-
-		$this->client = $client;
 	}
 
 
@@ -53,7 +48,7 @@ abstract class Base
 	 */
 	public function __call( string $name, array $param )
 	{
-		return call_user_func_array( array( $this->client, $name ), $param );
+		return call_user_func_array( [ $this->client, $name ], $param );
 	}
 
 

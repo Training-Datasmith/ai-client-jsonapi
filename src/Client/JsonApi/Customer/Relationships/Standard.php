@@ -234,7 +234,7 @@ class Standard
 			}
 			else
 			{
-				$view->items = isset( $items[$relId] ) ? $items[$relId] : null;
+				$view->items = $items[$relId] ?? null;
 				$view->total = empty( $view->items ) ? 0 : 1;
 			}
 

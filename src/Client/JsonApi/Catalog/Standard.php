@@ -219,7 +219,6 @@ class Standard
 	 */
 	protected function getItem( \Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response ) : \Psr\Http\Message\ResponseInterface
 	{
-		$map = [];
 		$ref = $view->param( 'include', [] );
 		$level = \Aimeos\MW\Tree\Manager\Base::LEVEL_ONE;
 

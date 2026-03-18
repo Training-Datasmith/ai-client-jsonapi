@@ -257,7 +257,7 @@ class Standard
 					throw new \Aimeos\Client\JsonApi\Exception( 'Position (ID) is missing', 400 );
 				}
 
-				$qty = ( isset( $entry->attributes->quantity ) ? $entry->attributes->quantity : 1 );
+				$qty = ( $entry->attributes->quantity ?? 1 );
 				$this->controller->updateProduct( $entry->id, $qty );
 			}
 
@@ -324,12 +324,12 @@ class Standard
 			{
 				$item = $cntl->get( $entry->attributes->{'product.id'} );
 
-				$qty = ( isset( $entry->attributes->quantity ) ? $entry->attributes->quantity : 1 );
-				$stock = ( isset( $entry->attributes->stocktype ) ? $entry->attributes->stocktype : 'default' );
+				$qty = ( $entry->attributes->quantity ?? 1 );
+				$stock = ( $entry->attributes->stocktype ?? 'default' );
 				$varIds = ( isset( $entry->attributes->variant ) ? (array) $entry->attributes->variant : [] );
 				$confIds = ( isset( $entry->attributes->config ) ? get_object_vars( $entry->attributes->config ) : [] );
 				$custIds = ( isset( $entry->attributes->custom ) ? get_object_vars( $entry->attributes->custom ) : [] );
-				$siteId = ( isset( $entry->attributes->siteid ) ? $entry->attributes->siteid : null );
+				$siteId = ( $entry->attributes->siteid ?? null );
 
 				$this->controller->addProduct( $item, $qty, $varIds, $confIds, $custIds, $stock, $siteId );
 			}

@@ -332,12 +332,12 @@ class Standard
 
 		if( ( $service = reset( $services ) ) !== false )
 		{
-			$args = array( 'code' => $service->getCode(), 'orderid' => $orderItem->getId() );
-			$config = array( 'absoluteUri' => true, 'namespace' => false );
-			$urls = array(
+			$args = [ 'code' => $service->getCode(), 'orderid' => $orderItem->getId() ];
+			$config = [ 'absoluteUri' => true, 'namespace' => false ];
+			$urls = [
 				'payment.url-success' => $this->getUrlConfirm( $view, $args, $config ),
 				'payment.url-update' => $this->getUrlUpdate( $view, $args, $config ),
-			);
+			];
 
 			foreach( $service->getAttributeItems() as $item ) {
 				$attributes[$item->getCode()] = $item->getValue();
