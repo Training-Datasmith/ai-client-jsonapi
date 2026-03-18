@@ -1,156 +1,147 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  */
 
-
 namespace Aimeos\Client\JsonApi\Stock;
-
 
 class StandardTest extends \PHPUnit\Framework\TestCase
 {
-	private $context;
-	private $object;
-	private $view;
+    private $context;
+    private $object;
+    private $view;
 
+    protected function setUp(): void
+    {
+        \Aimeos\Controller\Frontend::cache(true);
 
-	protected function setUp() : void
-	{
-		\Aimeos\Controller\Frontend::cache( true );
+        $this->context = \TestHelper::context();
+        $this->view = $this->context->view();
 
-		$this->context = \TestHelper::context();
-		$this->view = $this->context->view();
+        $this->object = new \Aimeos\Client\JsonApi\Stock\Standard($this->context);
+        $this->object->setView($this->view);
+    }
 
-		$this->object = new \Aimeos\Client\JsonApi\Stock\Standard( $this->context );
-		$this->object->setView( $this->view );
-	}
+    protected function tearDown(): void
+    {
+        \Aimeos\Controller\Frontend::cache(false);
+        unset($this->view, $this->object, $this->context);
+    }
 
+    public function testGetItem()
+    {
+        $manager = \Aimeos\MShop::create($this->context, 'stock');
+        $stockId = $manager->search($manager->filter()->slice(0, 1))->getId()->first();
 
-	protected function tearDown() : void
-	{
-		\Aimeos\Controller\Frontend::cache( false );
-		unset( $this->view, $this->object, $this->context );
-	}
+        $params = [
+            'id' => $stockId,
+            'fields' => [
+                'stock' => 'stock.id,stock.productid,stock.stocklevel',
+            ],
+            'sort' => 'stock.id',
+            'include' => 'stock.type',
+        ];
 
+        $helper = new \Aimeos\Base\View\Helper\Param\Standard($this->view, $params);
+        $this->view->addHelper('param', $helper);
 
-	public function testGetItem()
-	{
-		$manager = \Aimeos\MShop::create( $this->context, 'stock' );
-		$stockId = $manager->search( $manager->filter()->slice( 0, 1 ) )->getId()->first();
+        $response = $this->object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$params = array(
-			'id' => $stockId,
-			'fields' => array(
-				'stock' => 'stock.id,stock.productid,stock.stocklevel'
-			),
-			'sort' => 'stock.id',
-			'include' => 'stock.type'
-		);
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-		$helper = new \Aimeos\Base\View\Helper\Param\Standard( $this->view, $params );
-		$this->view->addHelper( 'param', $helper );
+        $this->assertEquals(1, $result['meta']['total']);
+        $this->assertEquals('stock', $result['data']['type']);
+        $this->assertEquals(3, count($result['data']['attributes']));
+        $this->assertNotEquals('', $result['data']['attributes']['stock.productid']);
+        $this->assertEquals(1, count($result['data']['relationships']['stock.type']['data']));
+        $this->assertEquals(1, count($result['included']));
 
-		$response = $this->object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+    public function testGetItems()
+    {
+        $prodId = \Aimeos\MShop::create($this->context, 'product')->find('CNC')->getId();
 
-		$this->assertEquals( 1, $result['meta']['total'] );
-		$this->assertEquals( 'stock', $result['data']['type'] );
-		$this->assertEquals( 3, count( $result['data']['attributes'] ) );
-		$this->assertNotEquals( '', $result['data']['attributes']['stock.productid'] );
-		$this->assertEquals( 1, count( $result['data']['relationships']['stock.type']['data'] ) );
-		$this->assertEquals( 1, count( $result['included'] ) );
+        $params = [
+            'filter' => ['s_prodid' => [$prodId]],
+            'sort' => 'stock.productid,-stock.dateback',
+        ];
+        $helper = new \Aimeos\Base\View\Helper\Param\Standard($this->view, $params);
+        $this->view->addHelper('param', $helper);
 
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $response = $this->object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-	public function testGetItems()
-	{
-		$prodId = \Aimeos\MShop::create( $this->context, 'product' )->find( 'CNC' )->getId();
+        $this->assertEquals(1, $result['meta']['total']);
+        $this->assertEquals(1, count($result['data']));
+        $this->assertEquals('stock', $result['data'][0]['type']);
 
-		$params = array(
-			'filter' => ['s_prodid' => [$prodId]],
-			'sort' => 'stock.productid,-stock.dateback',
-		);
-		$helper = new \Aimeos\Base\View\Helper\Param\Standard( $this->view, $params );
-		$this->view->addHelper( 'param', $helper );
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
-		$response = $this->object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+    public function testGetMShopException()
+    {
+        $object = $this->getMockBuilder(\Aimeos\Client\JsonApi\Stock\Standard::class)
+            ->setConstructorArgs([$this->context, 'stock'])
+            ->onlyMethods(['getItems'])
+            ->getMock();
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+        $object->expects($this->once())->method('getItems')
+            ->will($this->throwException(new \Aimeos\MShop\Exception()));
 
-		$this->assertEquals( 1, $result['meta']['total'] );
-		$this->assertEquals( 1, count( $result['data'] ) );
-		$this->assertEquals( 'stock', $result['data'][0]['type'] );
+        $object->setView($this->view);
 
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $response = $object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
+        $this->assertEquals(404, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
-	public function testGetMShopException()
-	{
-		$object = $this->getMockBuilder( \Aimeos\Client\JsonApi\Stock\Standard::class )
-			->setConstructorArgs( [$this->context, 'stock'] )
-			->onlyMethods( ['getItems'] )
-			->getMock();
+    public function testGetException()
+    {
+        $object = $this->getMockBuilder(\Aimeos\Client\JsonApi\Stock\Standard::class)
+            ->setConstructorArgs([$this->context, 'stock'])
+            ->onlyMethods(['getItems'])
+            ->getMock();
 
-		$object->expects( $this->once() )->method( 'getItems' )
-			->will( $this->throwException( new \Aimeos\MShop\Exception() ) );
+        $object->expects($this->once())->method('getItems')
+            ->will($this->throwException(new \Exception()));
 
-		$object->setView( $this->view );
+        $object->setView($this->view);
 
-		$response = $object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $response = $object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
+        $this->assertEquals(500, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
-		$this->assertEquals( 404, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
+    public function testOptions()
+    {
+        $response = $this->object->options($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-	public function testGetException()
-	{
-		$object = $this->getMockBuilder( \Aimeos\Client\JsonApi\Stock\Standard::class )
-			->setConstructorArgs( [$this->context, 'stock'] )
-			->onlyMethods( ['getItems'] )
-			->getMock();
-
-		$object->expects( $this->once() )->method( 'getItems' )
-			->will( $this->throwException( new \Exception() ) );
-
-		$object->setView( $this->view );
-
-		$response = $object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
-
-
-		$this->assertEquals( 500, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
-
-
-	public function testOptions()
-	{
-		$response = $this->object->options( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
-
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
-
-		$this->assertEquals( null, $result['meta']['prefix'] );
-		$this->assertEquals( 3, count( $result['meta']['filter'] ) );
-		$this->assertArrayNotHasKey( 'attributes', $result['meta'] );
-		$this->assertArrayNotHasKey( 'sort', $result['meta'] );
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $this->assertEquals(null, $result['meta']['prefix']);
+        $this->assertEquals(3, count($result['meta']['filter']));
+        $this->assertArrayNotHasKey('attributes', $result['meta']);
+        $this->assertArrayNotHasKey('sort', $result['meta']);
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 }

@@ -7,111 +7,102 @@
  * @subpackage JsonApi
  */
 
-
 $enc = $this->encoder();
 
-$target = $this->config( 'client/jsonapi/url/target' );
-$cntl = $this->config( 'client/jsonapi/url/controller', 'jsonapi' );
-$action = $this->config( 'client/jsonapi/url/action', 'get' );
-$config = $this->config( 'client/jsonapi/url/config', [] );
+$target = $this->config('client/jsonapi/url/target');
+$cntl = $this->config('client/jsonapi/url/controller', 'jsonapi');
+$action = $this->config('client/jsonapi/url/action', 'get');
+$config = $this->config('client/jsonapi/url/config', []);
 
+$ref = [ 'resource', 'id', 'related', 'relatedid', 'filter', 'page', 'sort', 'include', 'fields' ];
+$params = array_intersect_key($this->param(), array_flip($ref));
 
-$ref = array( 'resource', 'id', 'related', 'relatedid', 'filter', 'page', 'sort', 'include', 'fields' );
-$params = array_intersect_key( $this->param(), array_flip( $ref ) );
+$pretty = $this->param('pretty') ? JSON_PRETTY_PRINT : 0;
+$fields = $this->param('fields', []);
 
-$pretty = $this->param( 'pretty' ) ? JSON_PRETTY_PRINT : 0;
-$fields = $this->param( 'fields', [] );
-
-foreach( (array) $fields as $resource => $list ) {
-	$fields[$resource] = array_flip( explode( ',', $list ) );
+foreach ((array) $fields as $resource => $list) {
+    $fields[$resource] = array_flip(explode(',', $list));
 }
 
+$entryFcn = function (\Aimeos\MShop\Service\Item\Iface $item, \Aimeos\Map $prices, array $feConfig) use ($fields, $target, $cntl, $action, $config) {
+    $metadata = [];
+    $id = $item->getId();
+    $type = $item->getResourceType();
 
-$entryFcn = function( \Aimeos\MShop\Service\Item\Iface $item, \Aimeos\Map $prices, array $feConfig ) use ( $fields, $target, $cntl, $action, $config )
-{
-	$metadata = [];
-	$id = $item->getId();
-	$type = $item->getResourceType();
+    $attributes = $item->toArray();
+    unset($attributes['service.config']); // don't expose private information
 
-	$attributes = $item->toArray();
-	unset( $attributes['service.config'] ); // don't expose private information
+    $params = [ 'resource' => $type, 'id' => $id ];
+    $basketParams = ['resource' => 'basket', 'id' => 'default', 'related' => 'service', 'relatedid' => $item->getType()];
 
-	$params = array( 'resource' => $type, 'id' => $id );
-	$basketParams = ['resource' => 'basket', 'id' => 'default', 'related' => 'service', 'relatedid' => $item->getType()];
+    if (isset($fields[$type])) {
+        $attributes = array_intersect_key($attributes, $fields[$type]);
+    }
 
-	if( isset( $fields[$type] ) ) {
-		$attributes = array_intersect_key( $attributes, $fields[$type] );
-	}
+    if (($price = $prices->get($id)) !== null) {
+        $attributes['price'] = $price->toArray();
+    }
 
-	if( ( $price = $prices->get( $id ) ) !== null ) {
-		$attributes['price'] = $price->toArray();
-	}
+    if (isset($feConfig[$id])) {
+        foreach ($feConfig[$id] as $code => $attr) {
+            $metadata[$code] = $attr->toArray();
+        }
+    }
 
-	if( isset( $feConfig[$id] ) )
-	{
-		foreach( $feConfig[$id] as $code => $attr ) {
-			$metadata[$code] = $attr->toArray();
-		}
-	}
+    $entry = [
+        'id' => $id,
+        'type' => $type,
+        'links' => [
+            'self' => [
+                'href' => $this->url($target, $cntl, $action, $params, [], $config),
+                'allow' => ['GET'],
+            ],
+            'basket.service' => [
+                'href' => $this->url($target, $cntl, $action, $basketParams, [], $config),
+                'allow' => ['POST'],
+                'meta' => $metadata,
+            ],
+        ],
+        'attributes' => $attributes,
+    ];
 
-	$entry = array(
-		'id' => $id,
-		'type' => $type,
-		'links' => array(
-			'self' => array(
-				'href' => $this->url( $target, $cntl, $action, $params, [], $config ),
-				'allow' => ['GET'],
-			),
-			'basket.service' => array(
-				'href' => $this->url( $target, $cntl, $action, $basketParams, [], $config ),
-				'allow' => ['POST'],
-				'meta' => $metadata,
-			),
-		),
-		'attributes' => $attributes,
-	);
+    if ($typeItem = $item->getTypeItem()) {
+        $entry['relationships'][$type . '.type']['data'][] = [
+            'id' => $typeItem->getId(),
+            'type' => $type . '.type',
+        ];
+    }
 
-	if( $typeItem = $item->getTypeItem() )
-	{
-		$entry['relationships'][$type . '.type']['data'][] = [
-			'id' => $typeItem->getId(),
-			'type' => $type . '.type',
-		];
-	}
+    foreach ($item->getListItems() as $listItem) {
+        if (($refItem = $listItem->getRefItem()) !== null && $refItem->isAvailable()) {
+            $ltype = str_replace('/', '.', $listItem->getResourceType());
+            $rtype = str_replace('/', '.', $refItem->getResourceType());
+            $attributes = $listItem->toArray();
 
-	foreach( $item->getListItems() as $listItem )
-	{
-		if( ( $refItem = $listItem->getRefItem() ) !== null && $refItem->isAvailable() )
-		{
-			$ltype = str_replace( '/', '.', $listItem->getResourceType() );
-			$rtype = str_replace( '/', '.', $refItem->getResourceType() );
-			$attributes = $listItem->toArray();
+            if (isset($fields[$ltype])) {
+                $attributes = array_intersect_key($attributes, $fields[$ltype]);
+            }
 
-			if( isset( $fields[$ltype] ) ) {
-				$attributes = array_intersect_key( $attributes, $fields[$ltype] );
-			}
+            $data = [ 'id' => $refItem->getId(), 'type' => $rtype, 'attributes' => $attributes ];
+            $entry['relationships'][$rtype]['data'][] = $data;
+        }
+    }
 
-			$data = array( 'id' => $refItem->getId(), 'type' => $rtype, 'attributes' => $attributes );
-			$entry['relationships'][$rtype]['data'][] = $data;
-		}
-	}
-
-	return $entry;
+    return $entry;
 };
-
 
 ?>
 {
 	"meta": {
-		"total": <?= $this->get( 'total', 0 ); ?>,
-		"prefix": <?= json_encode( $this->get( 'prefix' ) ); ?>,
-		"content-baseurl": "<?= $this->config( 'resource/fs/baseurl' ); ?>",
+		"total": <?= $this->get('total', 0); ?>,
+		"prefix": <?= json_encode($this->get('prefix')); ?>,
+		"content-baseurl": "<?= $this->config('resource/fs/baseurl'); ?>",
 		"content-baseurls": {
-			"fs-media": "<?= $this->config( 'resource/fs-media/baseurl' ) ?>",
-			"fs-mimeicon": "<?= $this->config( 'resource/fs-mimeicon/baseurl' ) ?>",
-			"fs-theme": "<?= $this->config( 'resource/fs-theme/baseurl' ) ?>"
+			"fs-media": "<?= $this->config('resource/fs-media/baseurl') ?>",
+			"fs-mimeicon": "<?= $this->config('resource/fs-mimeicon/baseurl') ?>",
+			"fs-theme": "<?= $this->config('resource/fs-theme/baseurl') ?>"
 		}
-		<?php if( $this->csrf()->name() != '' ) : ?>
+		<?php if ($this->csrf()->name() != '') : ?>
 			, "csrf": {
 				"name": "<?= $this->csrf()->name(); ?>",
 				"value": "<?= $this->csrf()->value(); ?>"
@@ -120,34 +111,31 @@ $entryFcn = function( \Aimeos\MShop\Service\Item\Iface $item, \Aimeos\Map $price
 
 	},
 	"links": {
-		"self": "<?= $this->url( $target, $cntl, $action, $params, [], $config ); ?>"
+		"self": "<?= $this->url($target, $cntl, $action, $params, [], $config); ?>"
 	}
-	<?php if( isset( $this->errors ) ) : ?>
-		,"errors": <?= json_encode( $this->errors, $pretty ); ?>
+	<?php if (isset($this->errors)) : ?>
+		,"errors": <?= json_encode($this->errors, $pretty); ?>
 
-	<?php elseif( isset( $this->items ) ) : ?>
+	<?php elseif (isset($this->items)) : ?>
 		<?php
-			$data = [];
-			$items = $this->get( 'items', map() );
-			$prices = $this->get( 'prices', map() );
-			$feConfig = $this->get( 'attributes', [] );
-			$included = $this->jincluded( $this->items, $fields );
+            $data = [];
+	    $items = $this->get('items', map());
+	    $prices = $this->get('prices', map());
+	    $feConfig = $this->get('attributes', []);
+	    $included = $this->jincluded($this->items, $fields);
 
-			if( is_map( $items ) )
-			{
-				foreach( $items as $item ) {
-					$data[] = $entryFcn( $item, $prices, $feConfig );
-				}
-			}
-			else
-			{
-				$data = $entryFcn( $items, $prices, $feConfig );
-			}
-		?>
+	    if (is_map($items)) {
+	        foreach ($items as $item) {
+	            $data[] = $entryFcn($item, $prices, $feConfig);
+	        }
+	    } else {
+	        $data = $entryFcn($items, $prices, $feConfig);
+	    }
+?>
 
-		,"data": <?= json_encode( $data, $pretty ); ?>
+		,"data": <?= json_encode($data, $pretty); ?>
 
-		,"included": <?= map( $included )->flat( 1 )->toJson( $pretty ) ?>
+		,"included": <?= map($included)->flat(1)->toJson($pretty) ?>
 
 	<?php endif; ?>
 

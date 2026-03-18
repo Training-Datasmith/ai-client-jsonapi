@@ -7,29 +7,27 @@
  * @subpackage JsonApi
  */
 
-
 $entries = [];
-$data = $this->get( 'data', [] );
-$type = $this->param( 'aggregate' );
+$data = $this->get('data', []);
+$type = $this->param('aggregate');
 
-foreach( $data as $key => $value ) {
-	$entries[] = array( 'id' => $key, 'type' => $type, 'attributes' => $value );
+foreach ($data as $key => $value) {
+    $entries[] = [ 'id' => $key, 'type' => $type, 'attributes' => $value ];
 }
-
 
 ?>
 {
 	"meta": {
-		"total": <?= count( $data ); ?>,
-		"prefix": <?= json_encode( $this->get( 'prefix' ) ); ?>,
-		"content-baseurl": "<?= $this->config( 'resource/fs/baseurl' ); ?>",
+		"total": <?= count($data); ?>,
+		"prefix": <?= json_encode($this->get('prefix')); ?>,
+		"content-baseurl": "<?= $this->config('resource/fs/baseurl'); ?>",
 		"content-baseurls": {
-			"fs-media": "<?= $this->config( 'resource/fs-media/baseurl' ) ?>",
-			"fs-mimeicon": "<?= $this->config( 'resource/fs-mimeicon/baseurl' ) ?>",
-			"fs-theme": "<?= $this->config( 'resource/fs-theme/baseurl' ) ?>"
+			"fs-media": "<?= $this->config('resource/fs-media/baseurl') ?>",
+			"fs-mimeicon": "<?= $this->config('resource/fs-mimeicon/baseurl') ?>",
+			"fs-theme": "<?= $this->config('resource/fs-theme/baseurl') ?>"
 		}
 
-		<?php if( $this->csrf()->name() != '' ) : ?>
+		<?php if ($this->csrf()->name() != '') : ?>
 			, "csrf": {
 				"name": "<?= $this->csrf()->name(); ?>",
 				"value": "<?= $this->csrf()->value(); ?>"
@@ -38,11 +36,11 @@ foreach( $data as $key => $value ) {
 
 	},
 
-	<?php if( isset( $this->errors ) ) : ?>
-		"errors": <?= json_encode( $this->errors, JSON_PRETTY_PRINT ); ?>
+	<?php if (isset($this->errors)) : ?>
+		"errors": <?= json_encode($this->errors, JSON_PRETTY_PRINT); ?>
 
 	<?php else : ?>
-		"data": <?= json_encode( $entries ); ?>
+		"data": <?= json_encode($entries); ?>
 
 	<?php endif; ?>
 }

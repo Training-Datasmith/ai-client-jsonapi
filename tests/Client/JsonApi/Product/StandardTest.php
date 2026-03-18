@@ -1,258 +1,241 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  */
 
-
 namespace Aimeos\Client\JsonApi\Product;
-
 
 class StandardTest extends \PHPUnit\Framework\TestCase
 {
-	private $context;
-	private $object;
-	private $view;
+    private $context;
+    private $object;
+    private $view;
 
+    protected function setUp(): void
+    {
+        \Aimeos\Controller\Frontend::cache(true);
 
-	protected function setUp() : void
-	{
-		\Aimeos\Controller\Frontend::cache( true );
+        $this->context = \TestHelper::context();
+        $this->view = $this->context->view();
 
-		$this->context = \TestHelper::context();
-		$this->view = $this->context->view();
+        $this->object = new \Aimeos\Client\JsonApi\Product\Standard($this->context);
+        $this->object->setView($this->view);
+    }
 
-		$this->object = new \Aimeos\Client\JsonApi\Product\Standard( $this->context );
-		$this->object->setView( $this->view );
-	}
+    protected function tearDown(): void
+    {
+        \Aimeos\Controller\Frontend::cache(false);
+        unset($this->view, $this->object, $this->context);
+    }
 
+    public function testSetView()
+    {
+        $result = $this->object->setView($this->view);
+        $this->assertInstanceOf(\Aimeos\Client\JsonApi\Iface::class, $result);
+    }
 
-	protected function tearDown() : void
-	{
-		\Aimeos\Controller\Frontend::cache( false );
-		unset( $this->view, $this->object, $this->context );
-	}
+    public function testAggregateAttribute()
+    {
+        $params = [ 'aggregate' => 'index.attribute.id' ];
+        $helper = new \Aimeos\Base\View\Helper\Param\Standard($this->view, $params);
+        $this->view->addHelper('param', $helper);
 
+        $response = $this->object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-	public function testSetView()
-	{
-		$result = $this->object->setView( $this->view );
-		$this->assertInstanceOf( \Aimeos\Client\JsonApi\Iface::class, $result );
-	}
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
+        $this->assertEquals(14, $result['meta']['total']);
+        $this->assertEquals(14, count($result['data']));
+        $this->assertGreaterThan(0, $result['data'][0]['id']);
+        $this->assertGreaterThan(0, $result['data'][0]['attributes']);
+        $this->assertEquals('index.attribute.id', $result['data'][0]['type']);
 
-	public function testAggregateAttribute()
-	{
-		$params = array( 'aggregate' => 'index.attribute.id' );
-		$helper = new \Aimeos\Base\View\Helper\Param\Standard( $this->view, $params );
-		$this->view->addHelper( 'param', $helper );
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
-		$response = $this->object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+    public function testAggregateCatalog()
+    {
+        $params = [ 'aggregate' => 'index.catalog.id' ];
+        $helper = new \Aimeos\Base\View\Helper\Param\Standard($this->view, $params);
+        $this->view->addHelper('param', $helper);
 
+        $response = $this->object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-		$this->assertEquals( 14, $result['meta']['total'] );
-		$this->assertEquals( 14, count( $result['data'] ) );
-		$this->assertGreaterThan( 0, $result['data'][0]['id'] );
-		$this->assertGreaterThan( 0, $result['data'][0]['attributes'] );
-		$this->assertEquals( 'index.attribute.id', $result['data'][0]['type'] );
+        $this->assertEquals(4, $result['meta']['total']);
+        $this->assertEquals(4, count($result['data']));
+        $this->assertGreaterThan(0, $result['data'][0]['id']);
+        $this->assertGreaterThan(0, $result['data'][0]['attributes']);
+        $this->assertEquals('index.catalog.id', $result['data'][0]['type']);
 
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
+    public function testGetItem()
+    {
+        $prodId = \Aimeos\MShop::create($this->context, 'product')->find('CNE')->getId();
+        $params = [
+            'id' => $prodId,
+            'fields' => [
+                'product' => 'product.id,product.label',
+                'product.lists' => 'product.lists.type',
+                'locale.site' => 'locale.site.id,locale.site.code',
+            ],
+            'sort' => 'product.id',
+            'include' => 'product.attribute,product.catalog,product.media,product.price,product,product.property,product.property.type,stock,product.supplier,product.text,product.type,locale.site',
+        ];
 
-	public function testAggregateCatalog()
-	{
-		$params = array( 'aggregate' => 'index.catalog.id' );
-		$helper = new \Aimeos\Base\View\Helper\Param\Standard( $this->view, $params );
-		$this->view->addHelper( 'param', $helper );
+        $helper = new \Aimeos\Base\View\Helper\Param\Standard($this->view, $params);
+        $this->view->addHelper('param', $helper);
 
-		$response = $this->object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $response = $this->object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+        $this->assertEquals(1, $result['meta']['total']);
+        $this->assertEquals('product', $result['data']['type']);
+        $this->assertEquals(7, count($result['data']['relationships']['text']['data']));
+        $this->assertEquals(2, count($result['data']['relationships']['price']['data']));
+        $this->assertEquals(3, count($result['data']['relationships']['media']['data']));
+        $this->assertEquals(4, count($result['data']['relationships']['product.property']['data']));
+        $this->assertEquals(2, count($result['data']['relationships']['product']['data']));
+        $this->assertEquals(6, count($result['data']['relationships']['attribute']['data']));
+        $this->assertEquals(5, count($result['data']['relationships']['catalog']['data']));
+        $this->assertEquals(1, count($result['data']['relationships']['supplier']['data']));
+        $this->assertEquals(1, count($result['data']['relationships']['stock']['data']));
+        $this->assertEquals(1, count($result['data']['relationships']['text']['data'][0]['attributes']));
+        $this->assertEquals(1, count($result['data']['relationships']['locale.site']['data']));
+        $this->assertEquals(1, count($result['data']['relationships']['product.type']['data']));
+        $this->assertGreaterThanOrEqual(49, count($result['included']));
 
-		$this->assertEquals( 4, $result['meta']['total'] );
-		$this->assertEquals( 4, count( $result['data'] ) );
-		$this->assertGreaterThan( 0, $result['data'][0]['id'] );
-		$this->assertGreaterThan( 0, $result['data'][0]['attributes'] );
-		$this->assertEquals( 'index.catalog.id', $result['data'][0]['type'] );
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+    public function testGetItems()
+    {
+        $catId = \Aimeos\MShop::create($this->context, 'catalog')->find('cafe')->getId();
+        $params = [
+            'filter' => [ 'f_catid' => $catId, 'f_listtype' => 'promotion' ],
+            'fields' => [
+                'product' => 'product.id,product.code,product.label',
+            ],
+            'sort' => '-code,-product.status',
+            'include' => 'product.attribute,text,product,product.property,product.catalog',
+        ];
+        $helper = new \Aimeos\Base\View\Helper\Param\Standard($this->view, $params);
+        $this->view->addHelper('param', $helper);
 
+        $response = $this->object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-	public function testGetItem()
-	{
-		$prodId = \Aimeos\MShop::create( $this->context, 'product' )->find( 'CNE' )->getId();
-		$params = array(
-			'id' => $prodId,
-			'fields' => array(
-				'product' => 'product.id,product.label',
-				'product.lists' => 'product.lists.type',
-				'locale.site' => 'locale.site.id,locale.site.code'
-			),
-			'sort' => 'product.id',
-			'include' => 'product.attribute,product.catalog,product.media,product.price,product,product.property,product.property.type,stock,product.supplier,product.text,product.type,locale.site'
-		);
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-		$helper = new \Aimeos\Base\View\Helper\Param\Standard( $this->view, $params );
-		$this->view->addHelper( 'param', $helper );
+        $this->assertEquals(2, $result['meta']['total']);
+        $this->assertEquals(2, count($result['data']));
+        $this->assertEquals('product', $result['data'][0]['type']);
+        $this->assertEquals(3, count($result['data'][0]['attributes']));
+        $this->assertEquals(7, count($result['data'][0]['relationships']['text']['data']));
+        $this->assertEquals(4, count($result['data'][0]['relationships']['product.property']['data']));
+        $this->assertEquals(6, count($result['data'][0]['relationships']['attribute']['data']));
+        $this->assertEquals(2, count($result['data'][0]['relationships']['product']['data']));
+        $this->assertEquals(5, count($result['data'][0]['relationships']['catalog']['data']));
+        $this->assertEquals(5, count($result['data'][1]['relationships']['catalog']['data']));
+        $this->assertGreaterThanOrEqual(47, count($result['included']));
+        $this->assertEquals(3, count(map($result['included'])->groupBy('type')->get('catalog', [])));
 
-		$response = $this->object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+    public function testGetItemsCriteria()
+    {
+        $catId = \Aimeos\MShop::create($this->context, 'catalog')->find('cafe')->getId();
+        $params = [
+            'filter' => [
+                'f_catid' => $catId,
+                'f_search' => 'Cafe',
+                'f_listtype' => 'promotion',
+                '==' => ['product.type' => 'default'],
+            ],
+            'sort' => '-product.id',
+        ];
+        $helper = new \Aimeos\Base\View\Helper\Param\Standard($this->view, $params);
+        $this->view->addHelper('param', $helper);
 
-		$this->assertEquals( 1, $result['meta']['total'] );
-		$this->assertEquals( 'product', $result['data']['type'] );
-		$this->assertEquals( 7, count( $result['data']['relationships']['text']['data'] ) );
-		$this->assertEquals( 2, count( $result['data']['relationships']['price']['data'] ) );
-		$this->assertEquals( 3, count( $result['data']['relationships']['media']['data'] ) );
-		$this->assertEquals( 4, count( $result['data']['relationships']['product.property']['data'] ) );
-		$this->assertEquals( 2, count( $result['data']['relationships']['product']['data'] ) );
-		$this->assertEquals( 6, count( $result['data']['relationships']['attribute']['data'] ) );
-		$this->assertEquals( 5, count( $result['data']['relationships']['catalog']['data'] ) );
-		$this->assertEquals( 1, count( $result['data']['relationships']['supplier']['data'] ) );
-		$this->assertEquals( 1, count( $result['data']['relationships']['stock']['data'] ) );
-		$this->assertEquals( 1, count( $result['data']['relationships']['text']['data'][0]['attributes'] ) );
-		$this->assertEquals( 1, count( $result['data']['relationships']['locale.site']['data'] ) );
-		$this->assertEquals( 1, count( $result['data']['relationships']['product.type']['data'] ) );
-		$this->assertGreaterThanOrEqual( 49, count( $result['included'] ) );
+        $response = $this->object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(2, $result['meta']['total']);
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
+    public function testGetMShopException()
+    {
+        $object = $this->getMockBuilder(\Aimeos\Client\JsonApi\Product\Standard::class)
+            ->setConstructorArgs([$this->context, 'product'])
+            ->onlyMethods(['getItems'])
+            ->getMock();
 
-	public function testGetItems()
-	{
-		$catId = \Aimeos\MShop::create( $this->context, 'catalog' )->find( 'cafe' )->getId();
-		$params = array(
-			'filter' => array( 'f_catid' => $catId, 'f_listtype' => 'promotion' ),
-			'fields' => array(
-				'product' => 'product.id,product.code,product.label'
-			),
-			'sort' => '-code,-product.status',
-			'include' => 'product.attribute,text,product,product.property,product.catalog'
-		);
-		$helper = new \Aimeos\Base\View\Helper\Param\Standard( $this->view, $params );
-		$this->view->addHelper( 'param', $helper );
+        $object->expects($this->once())->method('getItems')
+            ->will($this->throwException(new \Aimeos\MShop\Exception()));
 
-		$response = $this->object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $object->setView($this->view);
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+        $response = $object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$this->assertEquals( 2, $result['meta']['total'] );
-		$this->assertEquals( 2, count( $result['data'] ) );
-		$this->assertEquals( 'product', $result['data'][0]['type'] );
-		$this->assertEquals( 3, count( $result['data'][0]['attributes'] ) );
-		$this->assertEquals( 7, count( $result['data'][0]['relationships']['text']['data'] ) );
-		$this->assertEquals( 4, count( $result['data'][0]['relationships']['product.property']['data'] ) );
-		$this->assertEquals( 6, count( $result['data'][0]['relationships']['attribute']['data'] ) );
-		$this->assertEquals( 2, count( $result['data'][0]['relationships']['product']['data'] ) );
-		$this->assertEquals( 5, count( $result['data'][0]['relationships']['catalog']['data'] ) );
-		$this->assertEquals( 5, count( $result['data'][1]['relationships']['catalog']['data'] ) );
-		$this->assertGreaterThanOrEqual( 47, count( $result['included'] ) );
-		$this->assertEquals( 3, count( map( $result['included'] )->groupBy( 'type' )->get( 'catalog', [] ) ) );
+        $this->assertEquals(404, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+    public function testGetException()
+    {
+        $object = $this->getMockBuilder(\Aimeos\Client\JsonApi\Product\Standard::class)
+            ->setConstructorArgs([$this->context, 'product'])
+            ->onlyMethods(['getItems'])
+            ->getMock();
 
+        $object->expects($this->once())->method('getItems')
+            ->will($this->throwException(new \Exception()));
 
-	public function testGetItemsCriteria()
-	{
-		$catId = \Aimeos\MShop::create( $this->context, 'catalog' )->find( 'cafe' )->getId();
-		$params = array(
-			'filter' => array(
-				'f_catid' => $catId,
-				'f_search' => 'Cafe',
-				'f_listtype' => 'promotion',
-				'==' => ['product.type' => 'default'],
-			),
-			'sort' => '-product.id',
-		);
-		$helper = new \Aimeos\Base\View\Helper\Param\Standard( $this->view, $params );
-		$this->view->addHelper( 'param', $helper );
+        $object->setView($this->view);
 
-		$response = $this->object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $response = $object->get($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 2, $result['meta']['total'] );
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $this->assertEquals(500, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
+    public function testOptions()
+    {
+        $response = $this->object->options($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-	public function testGetMShopException()
-	{
-		$object = $this->getMockBuilder( \Aimeos\Client\JsonApi\Product\Standard::class )
-			->setConstructorArgs( [$this->context, 'product'] )
-			->onlyMethods( ['getItems'] )
-			->getMock();
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-		$object->expects( $this->once() )->method( 'getItems' )
-			->will( $this->throwException( new \Aimeos\MShop\Exception() ) );
-
-
-		$object->setView( $this->view );
-
-		$response = $object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
-
-
-		$this->assertEquals( 404, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
-
-
-	public function testGetException()
-	{
-		$object = $this->getMockBuilder( \Aimeos\Client\JsonApi\Product\Standard::class )
-			->setConstructorArgs( [$this->context, 'product'] )
-			->onlyMethods( ['getItems'] )
-			->getMock();
-
-		$object->expects( $this->once() )->method( 'getItems' )
-			->will( $this->throwException( new \Exception() ) );
-
-
-		$object->setView( $this->view );
-
-		$response = $object->get( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
-
-
-		$this->assertEquals( 500, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
-
-
-	public function testOptions()
-	{
-		$response = $this->object->options( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
-
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
-
-		$this->assertEquals( null, $result['meta']['prefix'] );
-		$this->assertEquals( 7, count( $result['meta']['filter'] ) );
-		$this->assertEquals( 4, count( $result['meta']['sort'] ) );
-		$this->assertArrayNotHasKey( 'attributes', $result['meta'] );
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $this->assertEquals(null, $result['meta']['prefix']);
+        $this->assertEquals(7, count($result['meta']['filter']));
+        $this->assertEquals(4, count($result['meta']['sort']));
+        $this->assertArrayNotHasKey('attributes', $result['meta']);
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 }

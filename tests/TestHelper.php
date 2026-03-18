@@ -1,139 +1,123 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  */
 
-
 class TestHelper
 {
-	private static $aimeos;
-	private static $context = [];
+    private static $aimeos;
+    private static $context = [];
 
+    public static function bootstrap()
+    {
+        $aimeos = self::getAimeos();
+        \Aimeos\MShop::cache(false);
+        \Aimeos\Controller\Frontend::cache(false);
+    }
 
-	public static function bootstrap()
-	{
-		$aimeos = self::getAimeos();
-		\Aimeos\MShop::cache( false );
-		\Aimeos\Controller\Frontend::cache( false );
-	}
+    public static function context($site = 'unittest')
+    {
+        if (!isset(self::$context[$site])) {
+            self::$context[$site] = self::createContext($site);
+            self::$context[$site]->setView(self::view(self::$context[$site]->config()));
+        }
 
+        return (clone self::$context[$site])->setToken(md5(microtime(true)));
+    }
 
-	public static function context( $site = 'unittest' )
-	{
-		if( !isset( self::$context[$site] ) ) {
-			self::$context[$site] = self::createContext( $site );
-			self::$context[$site]->setView( self::view( self::$context[$site]->config() ) );
-		}
+    public static function view(\Aimeos\Base\Config\Iface $config)
+    {
+        $view = new \Aimeos\Base\View\Standard(self::getTemplatePaths());
 
-		return ( clone self::$context[$site] )->setToken( md5( microtime( true ) ) );
-	}
+        $trans = new \Aimeos\Base\Translation\None('en');
+        $helper = new \Aimeos\Base\View\Helper\Translate\Standard($view, $trans);
+        $view->addHelper('translate', $helper);
 
+        $helper = new \Aimeos\Base\View\Helper\Url\Standard($view, 'baseurl');
+        $view->addHelper('url', $helper);
 
-	public static function view( \Aimeos\Base\Config\Iface $config )
-	{
-		$view = new \Aimeos\Base\View\Standard( self::getTemplatePaths() );
+        $helper = new \Aimeos\Base\View\Helper\Number\Standard($view, '.', '');
+        $view->addHelper('number', $helper);
 
-		$trans = new \Aimeos\Base\Translation\None( 'en' );
-		$helper = new \Aimeos\Base\View\Helper\Translate\Standard( $view, $trans );
-		$view->addHelper( 'translate', $helper );
+        $helper = new \Aimeos\Base\View\Helper\Date\Standard($view, 'Y-m-d');
+        $view->addHelper('date', $helper);
 
-		$helper = new \Aimeos\Base\View\Helper\Url\Standard( $view, 'baseurl' );
-		$view->addHelper( 'url', $helper );
+        $helper = new \Aimeos\Base\View\Helper\Config\Standard($view, $config);
+        $view->addHelper('config', $helper);
 
-		$helper = new \Aimeos\Base\View\Helper\Number\Standard( $view, '.', '' );
-		$view->addHelper( 'number', $helper );
+        $psr17Factory = new \Nyholm\Psr7\Factory\Psr17Factory();
+        $helper = new \Aimeos\Base\View\Helper\Request\Standard($view, $psr17Factory->createServerRequest('GET', 'https://aimeos.org'));
+        $view->addHelper('request', $helper);
 
-		$helper = new \Aimeos\Base\View\Helper\Date\Standard( $view, 'Y-m-d' );
-		$view->addHelper( 'date', $helper );
+        $helper = new \Aimeos\Base\View\Helper\Response\Standard($view, $psr17Factory->createResponse());
+        $view->addHelper('response', $helper);
 
-		$helper = new \Aimeos\Base\View\Helper\Config\Standard( $view, $config );
-		$view->addHelper( 'config', $helper );
+        return $view;
+    }
 
-		$psr17Factory = new \Nyholm\Psr7\Factory\Psr17Factory();
-		$helper = new \Aimeos\Base\View\Helper\Request\Standard( $view, $psr17Factory->createServerRequest( 'GET', 'https://aimeos.org' ) );
-		$view->addHelper( 'request', $helper );
+    public static function getTemplatePaths()
+    {
+        return self::getAimeos()->getTemplatePaths('client/jsonapi/templates');
+    }
 
-		$helper = new \Aimeos\Base\View\Helper\Response\Standard( $view, $psr17Factory->createResponse() );
-		$view->addHelper( 'response', $helper );
+    private static function getAimeos()
+    {
+        if (!isset(self::$aimeos)) {
+            require_once 'Bootstrap.php';
+            spl_autoload_register('Aimeos\\Bootstrap::autoload');
 
-		return $view;
-	}
+            $extdir = dirname(dirname(dirname(dirname(__DIR__))));
+            self::$aimeos = new \Aimeos\Bootstrap([ $extdir ], true);
+        }
 
+        return self::$aimeos;
+    }
 
-	public static function getTemplatePaths()
-	{
-		return self::getAimeos()->getTemplatePaths( 'client/jsonapi/templates' );
-	}
+    private static function createContext($site)
+    {
+        $ctx = new \Aimeos\MShop\Context();
+        $aimeos = self::getAimeos();
 
+        $paths = $aimeos->getConfigPaths();
+        $paths[] = __DIR__ . DIRECTORY_SEPARATOR . 'config';
+        $file = __DIR__ . DIRECTORY_SEPARATOR . 'confdoc.ser';
 
-	private static function getAimeos()
-	{
-		if( !isset( self::$aimeos ) )
-		{
-			require_once 'Bootstrap.php';
-			spl_autoload_register( 'Aimeos\\Bootstrap::autoload' );
+        $conf = new \Aimeos\Base\Config\PHPArray(['client' => ['jsonapi' => ['debug' => true]]], $paths);
+        $conf = new \Aimeos\Base\Config\Decorator\Memory($conf);
+        $conf = new \Aimeos\Base\Config\Decorator\Documentor($conf, $file);
+        $ctx->setConfig($conf);
 
-			$extdir = dirname( dirname( dirname( dirname( __DIR__ ) ) ) );
-			self::$aimeos = new \Aimeos\Bootstrap( array( $extdir ), true );
-		}
+        $dbm = new \Aimeos\Base\DB\Manager\Standard($conf->get('resource', []), 'DBAL');
+        $ctx->setDatabaseManager($dbm);
 
-		return self::$aimeos;
-	}
+        $mq = new \Aimeos\Base\MQueue\Manager\Standard($conf->get('resource', []));
+        $ctx->setMessageQueueManager($mq);
 
+        $logger = new \Aimeos\Base\Logger\File($site . '.log', \Aimeos\Base\Logger\Iface::DEBUG);
+        $ctx->setLogger($logger);
 
-	private static function createContext( $site )
-	{
-		$ctx = new \Aimeos\MShop\Context();
-		$aimeos = self::getAimeos();
+        $cache = new \Aimeos\Base\Cache\None();
+        $ctx->setCache($cache);
 
+        $i18n = new \Aimeos\Base\Translation\None('en');
+        $ctx->setI18n([ 'en' => $i18n ]);
 
-		$paths = $aimeos->getConfigPaths();
-		$paths[] = __DIR__ . DIRECTORY_SEPARATOR . 'config';
-		$file = __DIR__ . DIRECTORY_SEPARATOR . 'confdoc.ser';
+        $passwd = new \Aimeos\Base\Password\Standard();
+        $ctx->setPassword($passwd);
 
-		$conf = new \Aimeos\Base\Config\PHPArray( ['client' => ['jsonapi' => ['debug' => true]]], $paths );
-		$conf = new \Aimeos\Base\Config\Decorator\Memory( $conf );
-		$conf = new \Aimeos\Base\Config\Decorator\Documentor( $conf, $file );
-		$ctx->setConfig( $conf );
+        $session = new \Aimeos\Base\Session\None();
+        $ctx->setSession($session);
 
+        $localeManager = \Aimeos\MShop::create($ctx, 'locale');
+        $locale = $localeManager->bootstrap($site, '', '', false);
+        $ctx->setLocale($locale);
 
-		$dbm = new \Aimeos\Base\DB\Manager\Standard( $conf->get( 'resource', [] ), 'DBAL' );
-		$ctx->setDatabaseManager( $dbm );
+        $ctx->setEditor('ai-client-jsonapi');
 
-
-		$mq = new \Aimeos\Base\MQueue\Manager\Standard( $conf->get( 'resource', [] ) );
-		$ctx->setMessageQueueManager( $mq );
-
-
-		$logger = new \Aimeos\Base\Logger\File( $site . '.log', \Aimeos\Base\Logger\Iface::DEBUG );
-		$ctx->setLogger( $logger );
-
-
-		$cache = new \Aimeos\Base\Cache\None();
-		$ctx->setCache( $cache );
-
-
-		$i18n = new \Aimeos\Base\Translation\None( 'en' );
-		$ctx->setI18n( array( 'en' => $i18n ) );
-
-
-		$passwd = new \Aimeos\Base\Password\Standard();
-		$ctx->setPassword( $passwd );
-
-
-		$session = new \Aimeos\Base\Session\None();
-		$ctx->setSession( $session );
-
-
-		$localeManager = \Aimeos\MShop::create( $ctx, 'locale' );
-		$locale = $localeManager->bootstrap( $site, '', '', false );
-		$ctx->setLocale( $locale );
-
-
-		$ctx->setEditor( 'ai-client-jsonapi' );
-
-		return $ctx;
-	}
+        return $ctx;
+    }
 }

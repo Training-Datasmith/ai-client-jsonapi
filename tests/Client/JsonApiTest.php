@@ -1,39 +1,37 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  */
 
-
 namespace Aimeos\Client;
-
 
 class JsonApiTest extends \PHPUnit\Framework\TestCase
 {
-	public function testCreate()
-	{
-		$context = \TestHelper::context();
+    public function testCreate()
+    {
+        $context = \TestHelper::context();
 
-		$client = \Aimeos\Client\JsonApi::create( $context, 'product' );
-		$this->assertInstanceOf( \Aimeos\Client\JsonApi\Iface::class, $client );
-	}
+        $client = \Aimeos\Client\JsonApi::create($context, 'product');
+        $this->assertInstanceOf(\Aimeos\Client\JsonApi\Iface::class, $client);
+    }
 
+    public function testCreateEmpty()
+    {
+        $context = \TestHelper::context();
 
-	public function testCreateEmpty()
-	{
-		$context = \TestHelper::context();
+        $client = \Aimeos\Client\JsonApi::create($context, '');
+        $this->assertInstanceOf(\Aimeos\Client\JsonApi\Iface::class, $client);
+    }
 
-		$client = \Aimeos\Client\JsonApi::create( $context, '' );
-		$this->assertInstanceOf( \Aimeos\Client\JsonApi\Iface::class, $client );
-	}
+    public function testCreateInvalidName()
+    {
+        $context = \TestHelper::context();
 
-
-	public function testCreateInvalidName()
-	{
-		$context = \TestHelper::context();
-
-		$this->expectException( \Aimeos\Client\JsonApi\Exception::class );
-		\Aimeos\Client\JsonApi::create( $context, '', '%^unknown' );
-	}
+        $this->expectException(\Aimeos\Client\JsonApi\Exception::class);
+        \Aimeos\Client\JsonApi::create($context, '', '%^unknown');
+    }
 }

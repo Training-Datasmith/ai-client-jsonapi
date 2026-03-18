@@ -1,282 +1,258 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  */
 
-
 namespace Aimeos\Client\JsonApi\Basket\Coupon;
-
 
 class StandardTest extends \PHPUnit\Framework\TestCase
 {
-	private $context;
-	private $object;
-	private $view;
+    private $context;
+    private $object;
+    private $view;
 
+    protected function setUp(): void
+    {
+        \Aimeos\Controller\Frontend::cache(true);
 
-	protected function setUp() : void
-	{
-		\Aimeos\Controller\Frontend::cache( true );
+        $this->context = \TestHelper::context();
+        $this->view = $this->context->view();
 
-		$this->context = \TestHelper::context();
-		$this->view = $this->context->view();
+        $this->object = new \Aimeos\Client\JsonApi\Basket\Coupon\Standard($this->context);
+        $this->object->setView($this->view);
+    }
 
-		$this->object = new \Aimeos\Client\JsonApi\Basket\Coupon\Standard( $this->context );
-		$this->object->setView( $this->view );
-	}
+    protected function tearDown(): void
+    {
+        \Aimeos\Controller\Frontend::cache(false);
+        unset($this->view, $this->object, $this->context);
+    }
 
+    public function testDelete()
+    {
+        $this->addProduct('CNC');
 
-	protected function tearDown() : void
-	{
-		\Aimeos\Controller\Frontend::cache( false );
-		unset( $this->view, $this->object, $this->context );
-	}
+        $body = '{"data": {"type": "basket.coupon", "id": "GHIJ"}}';
+        $request = $this->view->request()->withBody($this->view->response()->createStreamFromString($body));
 
+        $response = $this->object->post($request, $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-	public function testDelete()
-	{
-		$this->addProduct( 'CNC' );
+        $this->assertEquals(1, count($result['data']['relationships']['basket.coupon']['data']));
 
-		$body = '{"data": {"type": "basket.coupon", "id": "GHIJ"}}';
-		$request = $this->view->request()->withBody( $this->view->response()->createStreamFromString( $body ) );
+        $body = '{"data": {"type": "basket.coupon", "id": "GHIJ"}}';
+        $request = $this->view->request()->withBody($this->view->response()->createStreamFromString($body));
 
-		$response = $this->object->post( $request, $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $response = $this->object->delete($request, $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$this->assertEquals( 1, count( $result['data']['relationships']['basket.coupon']['data'] ) );
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
+        $this->assertEquals(1, $result['meta']['total']);
+        $this->assertEquals('basket', $result['data']['type']);
+        $this->assertArrayNotHasKey('basket.coupon', $result['data']['relationships']);
 
-		$body = '{"data": {"type": "basket.coupon", "id": "GHIJ"}}';
-		$request = $this->view->request()->withBody( $this->view->response()->createStreamFromString( $body ) );
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
-		$response = $this->object->delete( $request, $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+    public function testDeleteById()
+    {
+        $this->addProduct('CNC');
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+        $body = '{"data": {"type": "basket.coupon", "id": "GHIJ"}}';
+        $request = $this->view->request()->withBody($this->view->response()->createStreamFromString($body));
 
-		$this->assertEquals( 1, $result['meta']['total'] );
-		$this->assertEquals( 'basket', $result['data']['type'] );
-		$this->assertArrayNotHasKey( 'basket.coupon', $result['data']['relationships'] );
+        $response = $this->object->post($request, $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $this->assertEquals(1, count($result['data']['relationships']['basket.coupon']['data']));
 
+        $params = [ 'id' => 'default', 'relatedid' => 'GHIJ' ];
+        $helper = new \Aimeos\Base\View\Helper\Param\Standard($this->view, $params);
+        $this->view->addHelper('param', $helper);
 
-	public function testDeleteById()
-	{
-		$this->addProduct( 'CNC' );
+        $response = $this->object->delete($request, $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$body = '{"data": {"type": "basket.coupon", "id": "GHIJ"}}';
-		$request = $this->view->request()->withBody( $this->view->response()->createStreamFromString( $body ) );
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-		$response = $this->object->post( $request, $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $this->assertEquals(1, $result['meta']['total']);
+        $this->assertEquals('basket', $result['data']['type']);
+        $this->assertArrayNotHasKey('basket.coupon', $result['data']['relationships']);
 
-		$this->assertEquals( 1, count( $result['data']['relationships']['basket.coupon']['data'] ) );
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
+    public function testDeletePluginException()
+    {
+        $object = $this->object('setType', $this->throwException(new \Aimeos\MShop\Plugin\Provider\Exception()));
 
-		$params = array( 'id' => 'default', 'relatedid' => 'GHIJ' );
-		$helper = new \Aimeos\Base\View\Helper\Param\Standard( $this->view, $params );
-		$this->view->addHelper( 'param', $helper );
+        $response = $object->delete($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$response = $this->object->delete( $request, $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $this->assertEquals(409, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+    public function testDeleteMShopException()
+    {
+        $object = $this->object('setType', $this->throwException(new \Aimeos\MShop\Exception()));
 
-		$this->assertEquals( 1, $result['meta']['total'] );
-		$this->assertEquals( 'basket', $result['data']['type'] );
-		$this->assertArrayNotHasKey( 'basket.coupon', $result['data']['relationships'] );
+        $response = $object->delete($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $this->assertEquals(404, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
+    public function testDeleteException()
+    {
+        $object = $this->object('setType', $this->throwException(new \Exception()));
 
-	public function testDeletePluginException()
-	{
-		$object = $this->object( 'setType', $this->throwException( new \Aimeos\MShop\Plugin\Provider\Exception() ) );
+        $response = $object->delete($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$response = $object->delete( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $this->assertEquals(500, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
+    public function testPost()
+    {
+        $this->addProduct('CNC');
 
-		$this->assertEquals( 409, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
+        $body = '{"data": {"type": "basket.coupon", "id": "GHIJ"}}';
+        $request = $this->view->request()->withBody($this->view->response()->createStreamFromString($body));
 
+        $response = $this->object->post($request, $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-	public function testDeleteMShopException()
-	{
-		$object = $this->object( 'setType', $this->throwException( new \Aimeos\MShop\Exception() ) );
+        $this->assertEquals(201, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-		$response = $object->delete( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $this->assertEquals(1, $result['meta']['total']);
+        $this->assertEquals('basket', $result['data']['type']);
+        $this->assertEquals(1, count($result['data']['relationships']['basket.coupon']['data']));
 
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
-		$this->assertEquals( 404, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
+    public function testPostMultiple()
+    {
+        $this->context->config()->set('controller/frontend/basket/coupon/allowed', 2);
+        $this->addProduct('CNC');
 
-
-	public function testDeleteException()
-	{
-		$object = $this->object( 'setType', $this->throwException( new \Exception() ) );
-
-		$response = $object->delete( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
-
-
-		$this->assertEquals( 500, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
-
-
-	public function testPost()
-	{
-		$this->addProduct( 'CNC' );
-
-		$body = '{"data": {"type": "basket.coupon", "id": "GHIJ"}}';
-		$request = $this->view->request()->withBody( $this->view->response()->createStreamFromString( $body ) );
-
-		$response = $this->object->post( $request, $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
-
-
-		$this->assertEquals( 201, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
-
-		$this->assertEquals( 1, $result['meta']['total'] );
-		$this->assertEquals( 'basket', $result['data']['type'] );
-		$this->assertEquals( 1, count( $result['data']['relationships']['basket.coupon']['data'] ) );
-
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
-
-
-	public function testPostMultiple()
-	{
-		$this->context->config()->set( 'controller/frontend/basket/coupon/allowed', 2 );
-		$this->addProduct( 'CNC' );
-
-		$body = '{"data": [{
+        $body = '{"data": [{
 			"type": "basket.coupon", "id": "90AB"
 		}, {
 			"type": "basket.coupon", "id": "GHIJ"
 		}]}';
-		$request = $this->view->request()->withBody( $this->view->response()->createStreamFromString( $body ) );
+        $request = $this->view->request()->withBody($this->view->response()->createStreamFromString($body));
 
-		$response = $this->object->post( $request, $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $response = $this->object->post($request, $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$this->assertEquals( 201, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+        $this->assertEquals(201, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-		$this->assertEquals( 1, $result['meta']['total'] );
-		$this->assertEquals( 'basket', $result['data']['type'] );
-		$this->assertEquals( 2, count( $result['data']['relationships']['basket.coupon']['data'] ) );
+        $this->assertEquals(1, $result['meta']['total']);
+        $this->assertEquals('basket', $result['data']['type']);
+        $this->assertEquals(2, count($result['data']['relationships']['basket.coupon']['data']));
 
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
+    public function testPostPluginException()
+    {
+        $object = $this->object('setType', $this->throwException(new \Aimeos\MShop\Plugin\Provider\Exception()));
 
-	public function testPostPluginException()
-	{
-		$object = $this->object( 'setType', $this->throwException( new \Aimeos\MShop\Plugin\Provider\Exception() ) );
+        $response = $object->post($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
-		$response = $object->post( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $this->assertEquals(409, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
+    public function testPostMShopException()
+    {
+        $object = $this->object('setType', $this->throwException(new \Aimeos\MShop\Exception()));
 
-		$this->assertEquals( 409, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
+        $response = $object->post($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
+        $this->assertEquals(404, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
-	public function testPostMShopException()
-	{
-		$object = $this->object( 'setType', $this->throwException( new \Aimeos\MShop\Exception() ) );
+    public function testPostException()
+    {
+        $object = $this->object('setType', $this->throwException(new \Exception()));
 
-		$response = $object->post( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+        $response = $object->post($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
+        $this->assertEquals(500, $response->getStatusCode());
+        $this->assertArrayHasKey('errors', $result);
+    }
 
-		$this->assertEquals( 404, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
+    public function testOptions()
+    {
+        $response = $this->object->options($this->view->request(), $this->view->response());
+        $result = json_decode((string) $response->getBody(), true);
 
+        $this->assertEquals(200, $response->getStatusCode());
+        $this->assertEquals(1, count($response->getHeader('Allow')));
+        $this->assertEquals(1, count($response->getHeader('Content-Type')));
 
-	public function testPostException()
-	{
-		$object = $this->object( 'setType', $this->throwException( new \Exception() ) );
+        $this->assertEquals(null, $result['meta']['prefix']);
+        $this->assertArrayNotHasKey('attributes', $result['meta']);
+        $this->assertArrayNotHasKey('filter', $result['meta']);
+        $this->assertArrayNotHasKey('sort', $result['meta']);
+        $this->assertArrayNotHasKey('errors', $result);
+    }
 
-		$response = $object->post( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+    protected function addProduct($code)
+    {
+        $prodId = \Aimeos\MShop::create($this->context, 'product')->find($code)->getId();
 
+        $body = '{"data": {"type": "basket/product", "attributes": {"product.id": ' . $prodId . '}}}';
+        $request = $this->view->request()->withBody($this->view->response()->createStreamFromString($body));
 
-		$this->assertEquals( 500, $response->getStatusCode() );
-		$this->assertArrayHasKey( 'errors', $result );
-	}
+        $object = new \Aimeos\Client\JsonApi\Basket\Product\Standard($this->context, 'basket/product');
+        $object->setView($this->view);
 
+        $object->post($request, $this->view->response());
+    }
 
-	public function testOptions()
-	{
-		$response = $this->object->options( $this->view->request(), $this->view->response() );
-		$result = json_decode( (string) $response->getBody(), true );
+    /**
+     * Returns a test object with a mocked basket controller
+     *
+     * @param string $method Basket controller method name to mock
+     * @param mixed $result Return value of the mocked method
+     */
+    protected function object($method, $result)
+    {
+        $cntl = $this->getMockBuilder(\Aimeos\Controller\Frontend\Basket\Standard::class)
+            ->setConstructorArgs([$this->context])
+            ->onlyMethods([$method])
+            ->getMock();
 
-		$this->assertEquals( 200, $response->getStatusCode() );
-		$this->assertEquals( 1, count( $response->getHeader( 'Allow' ) ) );
-		$this->assertEquals( 1, count( $response->getHeader( 'Content-Type' ) ) );
+        $cntl->expects($this->once())->method($method)->will($result);
 
-		$this->assertEquals( null, $result['meta']['prefix'] );
-		$this->assertArrayNotHasKey( 'attributes', $result['meta'] );
-		$this->assertArrayNotHasKey( 'filter', $result['meta'] );
-		$this->assertArrayNotHasKey( 'sort', $result['meta'] );
-		$this->assertArrayNotHasKey( 'errors', $result );
-	}
+        \Aimeos\Controller\Frontend::inject(\Aimeos\Controller\Frontend\Basket\Standard::class, $cntl);
 
+        $object = new \Aimeos\Client\JsonApi\Basket\Coupon\Standard($this->context);
+        $object->setView($this->view);
 
-	protected function addProduct( $code )
-	{
-		$prodId = \Aimeos\MShop::create( $this->context, 'product' )->find( $code )->getId();
-
-		$body = '{"data": {"type": "basket/product", "attributes": {"product.id": ' . $prodId . '}}}';
-		$request = $this->view->request()->withBody( $this->view->response()->createStreamFromString( $body ) );
-
-		$object = new \Aimeos\Client\JsonApi\Basket\Product\Standard( $this->context, 'basket/product' );
-		$object->setView( $this->view );
-
-		$object->post( $request, $this->view->response() );
-	}
-
-
-	/**
-	 * Returns a test object with a mocked basket controller
-	 *
-	 * @param string $method Basket controller method name to mock
-	 * @param mixed $result Return value of the mocked method
-	 */
-	protected function object( $method, $result )
-	{
-		$cntl = $this->getMockBuilder( \Aimeos\Controller\Frontend\Basket\Standard::class )
-			->setConstructorArgs( [$this->context] )
-			->onlyMethods( [$method] )
-			->getMock();
-
-		$cntl->expects( $this->once() )->method( $method )->will( $result );
-
-		\Aimeos\Controller\Frontend::inject( \Aimeos\Controller\Frontend\Basket\Standard::class, $cntl );
-
-		$object = new \Aimeos\Client\JsonApi\Basket\Coupon\Standard( $this->context );
-		$object->setView( $this->view );
-
-		return $object;
-	}
+        return $object;
+    }
 }

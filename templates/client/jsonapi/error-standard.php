@@ -7,11 +7,10 @@
  * @subpackage JsonApi
  */
 
-
 ?>
 {
-<?php if( isset( $this->errors ) ) : ?>
-	"errors": <?= json_encode( $this->errors, JSON_PRETTY_PRINT ); ?>
+<?php if (isset($this->errors)) : ?>
+	"errors": <?= json_encode($this->errors, JSON_PRETTY_PRINT); ?>
 <?php endif; ?>
 
 }
