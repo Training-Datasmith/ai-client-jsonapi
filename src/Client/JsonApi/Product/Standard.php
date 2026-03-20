@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Product;
 
-namespace Aimeos\Client\JsonApi\Product;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API standard client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/product/name
      * Class name of the used product client implementation
@@ -55,7 +52,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/product/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/product/decorators/global
      * @see client/jsonapi/product/decorators/local
      */
-
     /** client/jsonapi/product/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/product/decorators/excludes
      * @see client/jsonapi/product/decorators/local
      */
-
     /** client/jsonapi/product/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,7 +127,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/product/decorators/excludes
      * @see client/jsonapi/product/decorators/global
      */
-
     /**
      * Returns the resource or the resource list
      *
@@ -141,28 +134,25 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
             if ($view->param('aggregate')) {
                 $response = $this->aggregate($view, $request, $response);
             } elseif ($view->param('id')) {
-                $response = $this->getItem($view, $request, $response);
+                $response = $this->get_item($view, $request, $response);
             } else {
-                $response = $this->getItems($view, $request, $response);
+                $response = $this->get_items($view, $request, $response);
             }
-
             $status = 200;
-        } catch (\Aimeos\MShop\Exception $e) {
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         if ($view->param('aggregate')) {
             /** client/jsonapi/product/template-aggregate
              * Relative path to the product aggregate JSON API template
@@ -208,16 +198,9 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
             $tplconf = 'client/jsonapi/product/template';
             $default = 'product/standard';
         }
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -225,72 +208,16 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
-        $view->filter = [
-            'f_search' => [
-                'label' => 'Return products whose text matches the user input',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'f_catid' => [
-                'label' => 'Return products associated to this category ID',
-                'type' => 'string|array', 'default' => '', 'required' => false,
-            ],
-            'f_listtype' => [
-                'label' => 'Return products which are associated to categories with this list type',
-                'type' => 'string', 'default' => 'default', 'required' => false,
-            ],
-            'f_attrid' => [
-                'label' => 'Return products that reference all attribute IDs',
-                'type' => 'array', 'default' => '[]', 'required' => false,
-            ],
-            'f_optid' => [
-                'label' => 'Return products that reference at least one of the attribute IDs',
-                'type' => 'array', 'default' => '[]', 'required' => false,
-            ],
-            'f_oneid' => [
-                'label' => 'Return products that reference at least one of the attribute IDs per attribute type',
-                'type' => 'array[<typecode>]', 'default' => '[]', 'required' => false,
-            ],
-            'f_supid' => [
-                'label' => 'Return products that reference at least one of the supplier IDs',
-                'type' => 'array', 'default' => '[]', 'required' => false,
-            ],
-        ];
-
-        $view->sort = [
-            'relevance' => [
-                'label' => 'Sort products by their category position',
-                'type' => 'string', 'default' => true, 'required' => false,
-            ],
-            'name' => [
-                'label' => 'Sort products by their name (ascending, "-name" for descending)',
-                'type' => 'string', 'default' => false, 'required' => false,
-            ],
-            'price' => [
-                'label' => 'Sort products by their price (ascending, "-price" for descending)',
-                'type' => 'string', 'default' => false, 'required' => false,
-            ],
-            'ctime' => [
-                'label' => 'Sort products by their creating date/time (ascending, "-ctime" for descending)',
-                'type' => 'string', 'default' => false, 'required' => false,
-            ],
-        ];
-
+        $view->filter = ['f_search' => ['label' => 'Return products whose text matches the user input', 'type' => 'string', 'default' => '', 'required' => false], 'f_catid' => ['label' => 'Return products associated to this category ID', 'type' => 'string|array', 'default' => '', 'required' => false], 'f_listtype' => ['label' => 'Return products which are associated to categories with this list type', 'type' => 'string', 'default' => 'default', 'required' => false], 'f_attrid' => ['label' => 'Return products that reference all attribute IDs', 'type' => 'array', 'default' => '[]', 'required' => false], 'f_optid' => ['label' => 'Return products that reference at least one of the attribute IDs', 'type' => 'array', 'default' => '[]', 'required' => false], 'f_oneid' => ['label' => 'Return products that reference at least one of the attribute IDs per attribute type', 'type' => 'array[<typecode>]', 'default' => '[]', 'required' => false], 'f_supid' => ['label' => 'Return products that reference at least one of the supplier IDs', 'type' => 'array', 'default' => '[]', 'required' => false]];
+        $view->sort = ['relevance' => ['label' => 'Sort products by their category position', 'type' => 'string', 'default' => true, 'required' => false], 'name' => ['label' => 'Sort products by their name (ascending, "-name" for descending)', 'type' => 'string', 'default' => false, 'required' => false], 'price' => ['label' => 'Sort products by their price (ascending, "-price" for descending)', 'type' => 'string', 'default' => false, 'required' => false], 'ctime' => ['label' => 'Sort products by their creating date/time (ascending, "-ctime" for descending)', 'type' => 'string', 'default' => false, 'required' => false]];
         $tplconf = 'client/jsonapi/template-options';
         $default = 'options-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus(200);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status(200);
     }
-
     /**
      * Counts the number of products for the requested key
      *
@@ -299,38 +226,33 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function aggregate(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function aggregate(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
-        $cntl = $this->getController($view)->sort()
-            ->slice($view->param('page/offset', 0), $view->param('page/limit', 10000));
-
+        $cntl = $this->get_controller($view)->sort()->slice($view->param('page/offset', 0), $view->param('page/limit', 10000));
         switch ($view->param('aggregate')) {
             case 'price:min':
-                $name = $cntl->function('index.price:value', [$this->context()->locale()->getCurrencyId()]);
+                $name = $cntl->function('index.price:value', [$this->context()->locale()->get_currency_id()]);
                 $view->data = $cntl->compare('!=', $name, null)->aggregate('product.status', 'agg:' . $name, 'min');
                 break;
             case 'price:max':
-                $name = $cntl->function('index.price:value', [$this->context()->locale()->getCurrencyId()]);
+                $name = $cntl->function('index.price:value', [$this->context()->locale()->get_currency_id()]);
                 $view->data = $cntl->compare('!=', $name, null)->aggregate('product.status', 'agg:' . $name, 'max');
                 break;
             default:
                 $view->data = $cntl->aggregate($view->param('aggregate'));
         }
-
         return $response;
     }
-
     /**
      * Returns the initialized product controller
      *
      * @param \Aimeos\Base\View\Iface $view View instance
      * @return \Aimeos\Controller\Frontend\Product\Iface Initialized product controller
      */
-    protected function getController(\Aimeos\Base\View\Iface $view)
+    protected function get_controller(\Aimeos\Base\View\Iface $view)
     {
         $context = $this->context();
         $cntl = \Aimeos\Controller\Frontend::create($context, 'product')->sort($view->param('sort', 'relevance'));
-
         /** client/jsonapi/product/levels
          * Include products of sub-categories in the product list of the current category
          *
@@ -358,27 +280,16 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
          * @category Developer
          */
         $level = $context->config()->get('client/jsonapi/product/levels', \Aimeos\MW\Tree\Manager\Base::LEVEL_ONE);
-
         foreach ((array) $view->param('filter/f_oneid', []) as $list) {
-            $cntl->oneOf($list);
+            $cntl->one_of($list);
         }
-
-        $cntl->allOf($view->param('filter/f_attrid', []))
-            ->oneOf($view->param('filter/f_optid', []))
-            ->text($view->param('filter/f_search'))
-            ->price($view->param('filter/f_price'))
-            ->supplier($view->param('filter/f_supid', []), $view->param('filter/f_listtype', 'default'))
-            ->category($view->param('filter/f_catid'), $view->param('filter/f_listtype', 'default'), $level);
-
+        $cntl->all_of($view->param('filter/f_attrid', []))->one_of($view->param('filter/f_optid', []))->text($view->param('filter/f_search'))->price($view->param('filter/f_price'))->supplier($view->param('filter/f_supid', []), $view->param('filter/f_listtype', 'default'))->category($view->param('filter/f_catid'), $view->param('filter/f_listtype', 'default'), $level);
         $params = (array) $view->param('filter', []);
-
         unset($params['f_catid'], $params['f_listtype']);
         unset($params['f_supid'], $params['f_search'], $params['f_price']);
         unset($params['f_attrid'], $params['f_optid'], $params['f_oneid']);
-
         return $cntl->parse($params)->slice($view->param('page/offset', 0), $view->param('page/limit', 48));
     }
-
     /**
      * Retrieves the item and adds the data to the view
      *
@@ -387,22 +298,17 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function getItem(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function get_item(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $ref = $view->param('include', []);
-
         if (is_string($ref)) {
             $ref = explode(',', str_replace('.', '/', $ref));
         }
-
         $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'product');
-
         $view->items = $cntl->uses($ref)->get($view->param('id'));
         $view->total = 1;
-
         return $response;
     }
-
     /**
      * Retrieves the items and adds the data to the view
      *
@@ -411,18 +317,15 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function getItems(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function get_items(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $total = 0;
         $ref = $view->param('include', []);
-
         if (is_string($ref)) {
             $ref = explode(',', str_replace('.', '/', $ref));
         }
-
-        $view->items = $this->getController($view)->uses($ref)->search($total);
+        $view->items = $this->get_controller($view)->uses($ref)->search($total);
         $view->total = $total;
-
         return $response;
     }
 }

@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api;
 
-namespace Aimeos\Client\JsonApi;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API standard client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /**
      * Retrieves the resource or the resource list
@@ -29,10 +26,9 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         /** client/jsonapi/template-get
          * Relative path to the default JSON API template for unknown GET request
          *
@@ -55,16 +51,9 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
          */
         $tplconf = 'client/jsonapi/template-get';
         $default = 'get-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus(200);
+        return $response->with_header('Allow', 'OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status(200);
     }
-
     /**
      * Returns the available REST verbs and the available resources
      *
@@ -72,10 +61,9 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
             /** client/jsonapi/resources
              * A list of resource names whose clients are available for the JSON API
@@ -94,15 +82,13 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
              * @category Developer
              */
             $resources = $this->context()->config()->get('client/jsonapi/resources', []);
-
-            $view->locale = $this->context()->locale()->toArray();
+            $view->locale = $this->context()->locale()->to_array();
             $view->resources = (array) $resources;
             $status = 200;
         } catch (\Exception $e) {
             $status = 500;
-            $view->errors = $this->getErrorDetails($e);
+            $view->errors = $this->get_error_details($e);
         }
-
         /** client/jsonapi/template-options
          * Relative path to the JSON API template for OPTIONS requests
          *
@@ -125,13 +111,7 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
          */
         $tplconf = 'client/jsonapi/template-options';
         $default = 'options-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'GET')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
 }

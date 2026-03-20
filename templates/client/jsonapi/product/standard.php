@@ -6,9 +6,7 @@
  * @package Client
  * @subpackage JsonApi
  */
-
 $enc = $this->encoder();
-
 /** client/jsonapi/url/target
  * Destination of the URL where the client specified in the URL is known
  *
@@ -24,7 +22,6 @@ $enc = $this->encoder();
  * @see client/jsonapi/url/config
  */
 $target = $this->config('client/jsonapi/url/target');
-
 /** client/jsonapi/url/controller
  * Name of the client whose action should be called
  *
@@ -40,7 +37,6 @@ $target = $this->config('client/jsonapi/url/target');
  * @see client/jsonapi/url/config
  */
 $cntl = $this->config('client/jsonapi/url/controller', 'jsonapi');
-
 /** client/jsonapi/url/action
  * Name of the action that should create the output
  *
@@ -56,7 +52,6 @@ $cntl = $this->config('client/jsonapi/url/controller', 'jsonapi');
  * @see client/jsonapi/url/config
  */
 $action = $this->config('client/jsonapi/url/action', 'get');
-
 /** client/jsonapi/url/config
  * Associative list of configuration options used for generating the URL
  *
@@ -78,203 +73,209 @@ $action = $this->config('client/jsonapi/url/action', 'get');
  * @see client/jsonapi/url/action
  */
 $config = $this->config('client/jsonapi/url/config', []);
-
 $total = $this->get('total', 0);
 $offset = max($this->param('page/offset', 0), 0);
 $limit = max($this->param('page/limit', 48), 1);
-
-$first = ($offset > 0 ? 0 : null);
-$prev = ($offset - $limit >= 0 ? $offset - $limit : null);
-$next = ($offset + $limit < $total ? $offset + $limit : null);
-$last = (((int) ($total / $limit)) * $limit > $offset ? ((int) ($total / $limit)) * $limit : null);
-
-$ref = [ 'resource', 'id', 'related', 'relatedid', 'filter', 'page', 'sort', 'include', 'fields' ];
+$first = $offset > 0 ? 0 : null;
+$prev = $offset - $limit >= 0 ? $offset - $limit : null;
+$next = $offset + $limit < $total ? $offset + $limit : null;
+$last = (int) ($total / $limit) * $limit > $offset ? (int) ($total / $limit) * $limit : null;
+$ref = ['resource', 'id', 'related', 'relatedid', 'filter', 'page', 'sort', 'include', 'fields'];
 $params = array_intersect_key($this->param(), array_flip($ref));
-
 $pretty = $this->param('pretty') ? JSON_PRETTY_PRINT : 0;
 $fields = $this->param('fields', []);
-
 foreach ((array) $fields as $resource => $list) {
     $fields[$resource] = array_flip(explode(',', $list));
 }
-
-$entryFcn = function (\Aimeos\MShop\Product\Item\Iface $item) use ($fields, $target, $cntl, $action, $config) {
-    $id = $item->getId();
-    $attributes = $item->toArray();
-    $type = $item->getResourceType();
-
-    $params = [ 'resource' => $type, 'id' => $id ];
-    $basketParams = ['resource' => 'basket', 'id' => 'default', 'related' => 'product'];
-
+$entry_fcn = function (\Aimeos\M_Shop\Product\Item\Iface $item) use ($fields, $target, $cntl, $action, $config) {
+    $id = $item->get_id();
+    $attributes = $item->to_array();
+    $type = $item->get_resource_type();
+    $params = ['resource' => $type, 'id' => $id];
+    $basket_params = ['resource' => 'basket', 'id' => 'default', 'related' => 'product'];
     if (isset($fields[$type])) {
         $attributes = array_intersect_key($attributes, $fields[$type]);
     }
-
-    $entry = [
-        'id' => $id,
-        'type' => $type,
-        'links' => [
-            'self' => [
-                'href' => $this->url($target, $cntl, $action, $params, [], $config),
-                'allow' => [ 'GET' ],
-            ],
-            'basket.product' => [
-                'href' => $this->url($target, $cntl, $action, $basketParams, [], $config),
-                'allow' => ['POST'],
-            ],
-        ],
-        'attributes' => $attributes,
-    ];
-
-    if ($typeItem = $item->getTypeItem()) {
-        $entry['relationships'][$type . '.type']['data'][] = [
-            'id' => $typeItem->getId(),
-            'type' => $type . '.type',
-        ];
+    $entry = ['id' => $id, 'type' => $type, 'links' => ['self' => ['href' => $this->url($target, $cntl, $action, $params, [], $config), 'allow' => ['GET']], 'basket.product' => ['href' => $this->url($target, $cntl, $action, $basket_params, [], $config), 'allow' => ['POST']]], 'attributes' => $attributes];
+    if ($type_item = $item->get_type_item()) {
+        $entry['relationships'][$type . '.type']['data'][] = ['id' => $type_item->get_id(), 'type' => $type . '.type'];
     }
-
-    foreach ($item->getPropertyItems() as $propertyItem) {
-        $rtype = str_replace('/', '.', $propertyItem->getResourceType());
-        $entry['relationships'][$rtype]['data'][] = [ 'id' => $propertyItem->getId(), 'type' => $rtype ];
+    foreach ($item->get_property_items() as $property_item) {
+        $rtype = str_replace('/', '.', $property_item->get_resource_type());
+        $entry['relationships'][$rtype]['data'][] = ['id' => $property_item->get_id(), 'type' => $rtype];
     }
-
-    foreach ($item->getListItems() as $listItem) {
-        if (($refItem = $listItem->getRefItem()) !== null && $refItem->isAvailable()) {
-            $ltype = str_replace('/', '.', $listItem->getResourceType());
-            $rtype = str_replace('/', '.', $refItem->getResourceType());
-            $attributes = $listItem->toArray();
-
+    foreach ($item->get_list_items() as $list_item) {
+        if (($ref_item = $list_item->get_ref_item()) !== null && $ref_item->is_available()) {
+            $ltype = str_replace('/', '.', $list_item->get_resource_type());
+            $rtype = str_replace('/', '.', $ref_item->get_resource_type());
+            $attributes = $list_item->to_array();
             if (isset($fields[$ltype])) {
                 $attributes = array_intersect_key($attributes, $fields[$ltype]);
             }
-
-            $data = [ 'id' => $refItem->getId(), 'type' => $rtype, 'attributes' => $attributes ];
+            $data = ['id' => $ref_item->get_id(), 'type' => $rtype, 'attributes' => $attributes];
             $entry['relationships'][$rtype]['data'][] = $data;
         }
     }
-
-    foreach ($item->getStockItems() as $stockItem) {
-        if ($stockItem->isAvailable()) {
-            $entry['relationships']['stock']['data'][] = [ 'id' => $stockItem->getId(), 'type' => 'stock' ];
+    foreach ($item->get_stock_items() as $stock_item) {
+        if ($stock_item->is_available()) {
+            $entry['relationships']['stock']['data'][] = ['id' => $stock_item->get_id(), 'type' => 'stock'];
         }
     }
-
-    if ($siteItem = $item->getSiteItem()) {
-        $entry['relationships']['locale.site']['data'][] = [ 'id' => $siteItem->getId(), 'type' => 'locale.site' ];
+    if ($site_item = $item->get_site_item()) {
+        $entry['relationships']['locale.site']['data'][] = ['id' => $site_item->get_id(), 'type' => 'locale.site'];
     }
-
     return $entry;
 };
-
-$includeFcn = function (\Aimeos\MShop\Product\Item\Iface $item) use ($fields, $target, $cntl, $action, $config) {
+$include_fcn = function (\Aimeos\M_Shop\Product\Item\Iface $item) use ($fields, $target, $cntl, $action, $config) {
     $result = [];
-
-    foreach ($item->getStockItems() as $id => $stockItem) {
-        if ($stockItem->isAvailable()) {
+    foreach ($item->get_stock_items() as $id => $stock_item) {
+        if ($stock_item->is_available()) {
             $params = ['resource' => 'stock', 'id' => $id];
             $entry = ['id' => $id, 'type' => 'stock'];
-            $entry['attributes'] = $stockItem->toArray();
-
+            $entry['attributes'] = $stock_item->to_array();
             if (isset($fields['stock'])) {
                 $entry['attributes'] = array_intersect_key($entry['attributes'], $fields['stock']);
             }
-
-            $entry['links'] = [
-                'self' => [
-                    'href' => $this->url($target, $cntl, $action, $params, [], $config),
-                    'allow' => ['GET'],
-                ],
-            ];
-
+            $entry['links'] = ['self' => ['href' => $this->url($target, $cntl, $action, $params, [], $config), 'allow' => ['GET']]];
             $result['stock'][$id] = $entry;
         }
     }
-
-    if ($siteItem = $item->getSiteItem()) {
-        $params = ['resource' => 'locale.site', 'id' => $siteItem->getId()];
-        $entry = ['id' => $siteItem->getId(), 'type' => 'locale.site'];
-        $entry['attributes'] = $siteItem->toArray();
-
+    if ($site_item = $item->get_site_item()) {
+        $params = ['resource' => 'locale.site', 'id' => $site_item->get_id()];
+        $entry = ['id' => $site_item->get_id(), 'type' => 'locale.site'];
+        $entry['attributes'] = $site_item->to_array();
         if (isset($fields['locale.site'])) {
             $entry['attributes'] = array_intersect_key($entry['attributes'], $fields['locale.site']);
         }
-
-        $entry['links'] = [
-            'self' => [
-                'href' => $this->url($target, $cntl, $action, $params, [], $config),
-                'allow' => ['GET'],
-            ],
-        ];
-
-        $result['locale.site'][$siteItem->getId()] = $entry;
+        $entry['links'] = ['self' => ['href' => $this->url($target, $cntl, $action, $params, [], $config), 'allow' => ['GET']]];
+        $result['locale.site'][$site_item->get_id()] = $entry;
     }
-
     return $result;
 };
-
 ?>
 {
 	"meta": {
-		"total": <?= $total; ?>,
-		"prefix": <?= json_encode($this->get('prefix')); ?>,
-		"content-baseurl": "<?= $this->config('resource/fs/baseurl'); ?>",
+		"total": <?php 
+echo $total;
+?>,
+		"prefix": <?php 
+echo json_encode($this->get('prefix'));
+?>,
+		"content-baseurl": "<?php 
+echo $this->config('resource/fs/baseurl');
+?>",
 		"content-baseurls": {
-			"fs-media": "<?= $this->config('resource/fs-media/baseurl') ?>",
-			"fs-mimeicon": "<?= $this->config('resource/fs-mimeicon/baseurl') ?>",
-			"fs-theme": "<?= $this->config('resource/fs-theme/baseurl') ?>"
+			"fs-media": "<?php 
+echo $this->config('resource/fs-media/baseurl');
+?>",
+			"fs-mimeicon": "<?php 
+echo $this->config('resource/fs-mimeicon/baseurl');
+?>",
+			"fs-theme": "<?php 
+echo $this->config('resource/fs-theme/baseurl');
+?>"
 		}
-		<?php if ($this->csrf()->name() != '') : ?>
+		<?php 
+if ($this->csrf()->name() != '') {
+    ?>
 			, "csrf": {
-				"name": "<?= $this->csrf()->name(); ?>",
-				"value": "<?= $this->csrf()->value(); ?>"
+				"name": "<?php 
+    echo $this->csrf()->name();
+    ?>",
+				"value": "<?php 
+    echo $this->csrf()->value();
+    ?>"
 			}
-		<?php endif; ?>
+		<?php 
+}
+?>
 	},
 	"links": {
-		<?php if (is_map($this->get('items'))) : ?>
-			<?php if ($first !== null) : ?>
-				"first": "<?php $params['page']['offset'] = $first;
-			    echo $this->url($target, $cntl, $action, $params, [], $config); ?>",
-			<?php endif; ?>
-			<?php if ($prev !== null) : ?>
-				"prev": "<?php $params['page']['offset'] = $prev;
-			    echo $this->url($target, $cntl, $action, $params, [], $config); ?>",
-			<?php endif; ?>
-			<?php if ($next !== null) : ?>
-				"next": "<?php $params['page']['offset'] = $next;
-			    echo $this->url($target, $cntl, $action, $params, [], $config); ?>",
-			<?php endif; ?>
-			<?php if ($last !== null) : ?>
-				"last": "<?php $params['page']['offset'] = $last;
-			    echo $this->url($target, $cntl, $action, $params, [], $config); ?>",
-			<?php endif; ?>
-		<?php endif; ?>
-		"self": "<?php $params['page']['offset'] = $offset;
-echo $this->url($target, $cntl, $action, $params, [], $config); ?>"
-	}
-	<?php if (isset($this->errors)) : ?>
-		,"errors": <?= json_encode($this->errors, $pretty); ?>
-
-	<?php elseif (isset($this->items)) : ?>
-		<?php
-            $data = $included = [];
-	    $items = $this->get('items', map());
-
-	    if (is_map($items)) {
-	        foreach ($items as $item) {
-	            $data[] = $entryFcn($item);
-	            $included = array_replace_recursive($included, $includeFcn($item));
-	        }
-	    } else {
-	        $data = $entryFcn($items);
-	        $included = array_replace_recursive($included, $includeFcn($items));
-	    }
+		<?php 
+if (is_map($this->get('items'))) {
+    ?>
+			<?php 
+    if ($first !== null) {
+        ?>
+				"first": "<?php 
+        $params['page']['offset'] = $first;
+        echo $this->url($target, $cntl, $action, $params, [], $config);
+        ?>",
+			<?php 
+    }
+    ?>
+			<?php 
+    if ($prev !== null) {
+        ?>
+				"prev": "<?php 
+        $params['page']['offset'] = $prev;
+        echo $this->url($target, $cntl, $action, $params, [], $config);
+        ?>",
+			<?php 
+    }
+    ?>
+			<?php 
+    if ($next !== null) {
+        ?>
+				"next": "<?php 
+        $params['page']['offset'] = $next;
+        echo $this->url($target, $cntl, $action, $params, [], $config);
+        ?>",
+			<?php 
+    }
+    ?>
+			<?php 
+    if ($last !== null) {
+        ?>
+				"last": "<?php 
+        $params['page']['offset'] = $last;
+        echo $this->url($target, $cntl, $action, $params, [], $config);
+        ?>",
+			<?php 
+    }
+    ?>
+		<?php 
+}
 ?>
+		"self": "<?php 
+$params['page']['offset'] = $offset;
+echo $this->url($target, $cntl, $action, $params, [], $config);
+?>"
+	}
+	<?php 
+if (isset($this->errors)) {
+    ?>
+		,"errors": <?php 
+    echo json_encode($this->errors, $pretty);
+    ?>
 
-		,"data": <?= json_encode($data, $pretty); ?>
+	<?php 
+} elseif (isset($this->items)) {
+    ?>
+		<?php 
+    $data = $included = [];
+    $items = $this->get('items', map());
+    if (is_map($items)) {
+        foreach ($items as $item) {
+            $data[] = $entry_fcn($item);
+            $included = array_replace_recursive($included, $include_fcn($item));
+        }
+    } else {
+        $data = $entry_fcn($items);
+        $included = array_replace_recursive($included, $include_fcn($items));
+    }
+    ?>
 
-		,"included": <?= map($this->jincluded($items, $fields))->replace($included)->flat(1)->toJson($pretty); ?>
+		,"data": <?php 
+    echo json_encode($data, $pretty);
+    ?>
 
-	<?php endif; ?>
+		,"included": <?php 
+    echo map($this->jincluded($items, $fields))->replace($included)->flat(1)->to_json($pretty);
+    ?>
+
+	<?php 
+}
+?>
 
 }

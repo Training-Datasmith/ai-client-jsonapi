@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Basket\Product;
 
-namespace Aimeos\Client\JsonApi\Basket\Product;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API basket/product client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Basket\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/basket/product/name
      * Class name of the used basket/product client implementation
@@ -55,7 +52,6 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/basket/product/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @see client/jsonapi/basket/product/decorators/global
      * @see client/jsonapi/basket/product/decorators/local
      */
-
     /** client/jsonapi/basket/product/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @see client/jsonapi/basket/product/decorators/excludes
      * @see client/jsonapi/basket/product/decorators/local
      */
-
     /** client/jsonapi/basket/product/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,21 +127,17 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @see client/jsonapi/basket/product/decorators/excludes
      * @see client/jsonapi/basket/product/decorators/global
      */
-
     private \Aimeos\Controller\Frontend\Basket\Iface $controller;
-
     /**
      * Initializes the client
      *
      * @param \Aimeos\MShop\ContextIface $context MShop context object
      */
-    public function __construct(\Aimeos\MShop\ContextIface $context)
+    public function __construct(\Aimeos\M_Shop\Context_Iface $context)
     {
         parent::__construct($context);
-
         $this->controller = \Aimeos\Controller\Frontend::create($this->context(), 'basket');
     }
-
     /**
      * Deletes the resource or the resource list
      *
@@ -155,53 +145,44 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function delete(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function delete(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $this->clearCache();
-            $this->controller->setType($view->param('id', 'default'));
-
-            $relId = $view->param('relatedid');
-            $body = (string) $request->getBody();
-
-            if ($relId === '' || $relId === null) {
+            $this->clear_cache();
+            $this->controller->set_type($view->param('id', 'default'));
+            $rel_id = $view->param('relatedid');
+            $body = (string) $request->get_body();
+            if ($rel_id === '' || $rel_id === null) {
                 if (($payload = json_decode($body)) === null || !isset($payload->data)) {
-                    throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                    throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
                 }
-
                 if (!is_array($payload->data)) {
                     $payload->data = [$payload->data];
                 }
-
                 foreach ($payload->data as $entry) {
                     if (!isset($entry->id)) {
-                        throw new \Aimeos\Client\JsonApi\Exception('Position (ID) is missing', 400);
+                        throw new \Aimeos\Client\Json_Api\Exception('Position (ID) is missing', 400);
                     }
-
-                    $this->controller->deleteProduct($entry->id);
+                    $this->controller->delete_product($entry->id);
                 }
             } else {
-                $this->controller->deleteProduct($relId);
+                $this->controller->delete_product($rel_id);
             }
-
             $view->item = $this->controller->get();
             $status = 200;
-        } catch (\Aimeos\MShop\Plugin\Provider\Exception $e) {
+        } catch (\Aimeos\M_Shop\Plugin\Provider\Exception $e) {
             $status = 409;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'mshop');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Updates the resource or the resource list partitially
      *
@@ -209,54 +190,44 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function patch(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function patch(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $this->clearCache();
-            $this->controller->setType($view->param('id', 'default'));
-
-            $body = (string) $request->getBody();
-            $relId = $view->param('relatedid');
-
+            $this->clear_cache();
+            $this->controller->set_type($view->param('id', 'default'));
+            $body = (string) $request->get_body();
+            $rel_id = $view->param('relatedid');
             if (($payload = json_decode($body)) === null || !isset($payload->data) || !isset($payload->data->attributes)) {
-                throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
             }
-
             if (!is_array($payload->data)) {
                 $payload->data = [$payload->data];
             }
-
             foreach ($payload->data as $entry) {
-                if ($relId !== '' && $relId !== null) {
-                    $entry->id = $relId;
+                if ($rel_id !== '' && $rel_id !== null) {
+                    $entry->id = $rel_id;
                 }
-
                 if (!isset($entry->id)) {
-                    throw new \Aimeos\Client\JsonApi\Exception('Position (ID) is missing', 400);
+                    throw new \Aimeos\Client\Json_Api\Exception('Position (ID) is missing', 400);
                 }
-
-                $qty = ($entry->attributes->quantity ?? 1);
-                $this->controller->updateProduct($entry->id, $qty);
+                $qty = $entry->attributes->quantity ?? 1;
+                $this->controller->update_product($entry->id, $qty);
             }
-
             $view->item = $this->controller->get();
             $status = 200;
-        } catch (\Aimeos\MShop\Plugin\Provider\Exception $e) {
+        } catch (\Aimeos\M_Shop\Plugin\Provider\Exception $e) {
             $status = 409;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'mshop');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Creates or updates the resource or the resource list
      *
@@ -264,62 +235,49 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function post(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function post(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $this->clearCache();
-            $this->controller->setType($view->param('id', 'default'));
-
-            $body = (string) $request->getBody();
-
+            $this->clear_cache();
+            $this->controller->set_type($view->param('id', 'default'));
+            $body = (string) $request->get_body();
             if (($payload = json_decode($body)) === null || !isset($payload->data)) {
-                throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
             }
-
             if (!is_array($payload->data)) {
                 $payload->data = [$payload->data];
             }
-
             foreach ($payload->data as $entry) {
                 if (!isset($entry->attributes) || !isset($entry->attributes->{'product.id'})) {
-                    throw new \Aimeos\Client\JsonApi\Exception('Product ID is missing', 400);
+                    throw new \Aimeos\Client\Json_Api\Exception('Product ID is missing', 400);
                 }
             }
-
-            $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'product')
-                ->uses(['attribute', 'catalog', 'locale/site', 'media', 'price', 'product', 'text']);
-
+            $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'product')->uses(['attribute', 'catalog', 'locale/site', 'media', 'price', 'product', 'text']);
             foreach ($payload->data as $entry) {
                 $item = $cntl->get($entry->attributes->{'product.id'});
-
-                $qty = ($entry->attributes->quantity ?? 1);
-                $stock = ($entry->attributes->stocktype ?? 'default');
-                $varIds = (isset($entry->attributes->variant) ? (array) $entry->attributes->variant : []);
-                $confIds = (isset($entry->attributes->config) ? get_object_vars($entry->attributes->config) : []);
-                $custIds = (isset($entry->attributes->custom) ? get_object_vars($entry->attributes->custom) : []);
-                $siteId = ($entry->attributes->siteid ?? null);
-
-                $this->controller->addProduct($item, $qty, $varIds, $confIds, $custIds, $stock, $siteId);
+                $qty = $entry->attributes->quantity ?? 1;
+                $stock = $entry->attributes->stocktype ?? 'default';
+                $var_ids = isset($entry->attributes->variant) ? (array) $entry->attributes->variant : [];
+                $conf_ids = isset($entry->attributes->config) ? get_object_vars($entry->attributes->config) : [];
+                $cust_ids = isset($entry->attributes->custom) ? get_object_vars($entry->attributes->custom) : [];
+                $site_id = $entry->attributes->siteid ?? null;
+                $this->controller->add_product($item, $qty, $var_ids, $conf_ids, $cust_ids, $stock, $site_id);
             }
-
             $view->item = $this->controller->get();
             $status = 201;
-        } catch (\Aimeos\MShop\Plugin\Provider\Exception $e) {
+        } catch (\Aimeos\M_Shop\Plugin\Provider\Exception $e) {
             $status = 409;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'mshop');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -327,57 +285,15 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
-        $view->attributes = [
-            'product.id' => [
-                'label' => 'Product ID from article, bundle or selection product (POST only)',
-                'type' => 'string', 'default' => '', 'required' => true,
-            ],
-            'quantity' => [
-                'label' => 'Number of product items (POST only)',
-                'type' => 'string', 'default' => '1', 'required' => false,
-            ],
-            'stocktype' => [
-                'label' => 'Code of the warehouse/location type (POST only)',
-                'type' => 'string', 'default' => 'default', 'required' => false,
-            ],
-            'variant' => [
-                'label' => 'List of attribute IDs of the selected variant attributes (POST only)',
-                'type' => 'array', 'default' => '[]', 'required' => false,
-            ],
-            'config' => [
-                'label' => 'List of attribute IDs of the selected config attributes (POST only)',
-                'type' => 'array', 'default' => '[]', 'required' => false,
-            ],
-            'hidden' => [
-                'label' => 'List of attribute IDs of the hidden product attributes that will be added but should be invisible (POST only)',
-                'type' => 'array', 'default' => '[]', 'required' => false,
-            ],
-            'custom' => [
-                'label' => 'List of values entered by the user for the custom attributes with the attribute IDs as keys (POST only)',
-                'type' => 'array[<attrid>]', 'default' => '[]', 'required' => false,
-            ],
-            'codes' => [
-                'label' => 'List of product options (added via "config") that should be removed (PATCH only)',
-                'type' => 'array', '' => '[]', 'required' => false,
-            ],
-        ];
-
+        $view->attributes = ['product.id' => ['label' => 'Product ID from article, bundle or selection product (POST only)', 'type' => 'string', 'default' => '', 'required' => true], 'quantity' => ['label' => 'Number of product items (POST only)', 'type' => 'string', 'default' => '1', 'required' => false], 'stocktype' => ['label' => 'Code of the warehouse/location type (POST only)', 'type' => 'string', 'default' => 'default', 'required' => false], 'variant' => ['label' => 'List of attribute IDs of the selected variant attributes (POST only)', 'type' => 'array', 'default' => '[]', 'required' => false], 'config' => ['label' => 'List of attribute IDs of the selected config attributes (POST only)', 'type' => 'array', 'default' => '[]', 'required' => false], 'hidden' => ['label' => 'List of attribute IDs of the hidden product attributes that will be added but should be invisible (POST only)', 'type' => 'array', 'default' => '[]', 'required' => false], 'custom' => ['label' => 'List of values entered by the user for the custom attributes with the attribute IDs as keys (POST only)', 'type' => 'array[<attrid>]', 'default' => '[]', 'required' => false], 'codes' => ['label' => 'List of product options (added via "config") that should be removed (PATCH only)', 'type' => 'array', '' => '[]', 'required' => false]];
         $tplconf = 'client/jsonapi/template-options';
         $default = 'options-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus(200);
+        return $response->with_header('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status(200);
     }
-
     /**
      * Returns the response object with the rendered header and body
      *
@@ -386,17 +302,11 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param int $status HTTP status code
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function render(ResponseInterface $response, \Aimeos\Base\View\Iface $view, int $status): \Psr\Http\Message\ResponseInterface
+    protected function render(Response_Interface $response, \Aimeos\Base\View\Iface $view, int $status): \Psr\Http\Message\Response_Interface
     {
         $tplconf = 'client/jsonapi/basket/template';
         $default = 'basket/standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')
-            ->withHeader('Cache-Control', 'no-cache, private')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')->with_header('Cache-Control', 'no-cache, private')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
 }

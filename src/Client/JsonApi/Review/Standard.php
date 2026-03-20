@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2020-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Review;
 
-namespace Aimeos\Client\JsonApi\Review;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API standard client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/review/name
      * Class name of the used review client implementation
@@ -55,7 +52,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/review/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/review/decorators/global
      * @see client/jsonapi/review/decorators/local
      */
-
     /** client/jsonapi/review/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/review/decorators/excludes
      * @see client/jsonapi/review/decorators/local
      */
-
     /** client/jsonapi/review/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,7 +127,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/review/decorators/excludes
      * @see client/jsonapi/review/decorators/global
      */
-
     /**
      * Returns the resource or the resource list
      *
@@ -141,34 +134,30 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
             if ($view->param('aggregate')) {
                 $response = $this->aggregate($view, $request, $response);
             } elseif ($view->param('id')) {
-                $response = $this->getItem($view, $request, $response);
+                $response = $this->get_item($view, $request, $response);
             } else {
-                $response = $this->getItems($view, $request, $response);
+                $response = $this->get_items($view, $request, $response);
             }
-
             $status = 200;
         } catch (\Aimeos\Controller\Frontend\Exception $e) {
             $status = 403;
-            $view->errors = $this->getErrorDetails($e, 'controller/frontend');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'controller/frontend');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -176,45 +165,17 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
         $view->attributes = [];
-
-        $view->filter = [
-            'f_domain' => [
-                'label' => 'Return reviews for that domain, e.g. "product"',
-                'type' => 'string', 'default' => '', 'required' => true,
-            ],
-            'f_refid' => [
-                'label' => 'Return reviews for the ID of the specified domain',
-                'type' => 'string', 'default' => '', 'required' => true,
-            ],
-        ];
-
-        $view->sort = [
-            'ctime' => [
-                'label' => 'Sort reviews by creation date/time',
-                'type' => 'string', 'default' => false, 'required' => false,
-            ],
-            'rating' => [
-                'label' => 'Sort reviews by rating (ascending, "-rating" for descending)',
-                'type' => 'string', 'default' => false, 'required' => false,
-            ],
-        ];
-
+        $view->filter = ['f_domain' => ['label' => 'Return reviews for that domain, e.g. "product"', 'type' => 'string', 'default' => '', 'required' => true], 'f_refid' => ['label' => 'Return reviews for the ID of the specified domain', 'type' => 'string', 'default' => '', 'required' => true]];
+        $view->sort = ['ctime' => ['label' => 'Sort reviews by creation date/time', 'type' => 'string', 'default' => false, 'required' => false], 'rating' => ['label' => 'Sort reviews by rating (ascending, "-rating" for descending)', 'type' => 'string', 'default' => false, 'required' => false]];
         $tplconf = 'client/jsonapi/template-options';
         $default = 'options-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus(200);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status(200);
     }
-
     /**
      * Counts the number of products for the requested key
      *
@@ -223,35 +184,26 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function aggregate(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function aggregate(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
-        $view->data = $this->getController($view)->sort()
-            ->slice($view->param('page/offset', 0), $view->param('page/limit', 10000))
-            ->aggregate($view->param('aggregate'));
-
+        $view->data = $this->get_controller($view)->sort()->slice($view->param('page/offset', 0), $view->param('page/limit', 10000))->aggregate($view->param('aggregate'));
         return $response;
     }
-
     /**
      * Returns the initialized product controller
      *
      * @param \Aimeos\Base\View\Iface $view View instance
      * @return \Aimeos\Controller\Frontend\Product\Iface Initialized product controller
      */
-    protected function getController(\Aimeos\Base\View\Iface $view)
+    protected function get_controller(\Aimeos\Base\View\Iface $view)
     {
         $context = $this->context();
         $cntl = \Aimeos\Controller\Frontend::create($context, 'review');
-
         $cntl->for($view->param('filter/f_domain', 'product'), $view->param('filter/f_refid'));
-
         $params = (array) $view->param('filter', []);
         unset($params['f_domain'], $params['f_refid']);
-
-        return $cntl->sort($view->param('sort', '-ctime'))->parse($params)
-            ->slice($view->param('page/offset', 0), $view->param('page/limit', 10));
+        return $cntl->sort($view->param('sort', '-ctime'))->parse($params)->slice($view->param('page/offset', 0), $view->param('page/limit', 10));
     }
-
     /**
      * Retrieves the item and adds the data to the view
      *
@@ -260,16 +212,13 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function getItem(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function get_item(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'review');
-
         $view->items = $cntl->get($view->param('id'));
         $view->total = 1;
-
         return $response;
     }
-
     /**
      * Retrieves the items and adds the data to the view
      *
@@ -278,16 +227,13 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function getItems(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function get_items(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $total = 0;
-
-        $view->items = $this->getController($view)->search($total);
+        $view->items = $this->get_controller($view)->search($total);
         $view->total = $total;
-
         return $response;
     }
-
     /**
      * Returns the response object with the rendered header and body
      *
@@ -296,7 +242,7 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param integer $status HTTP status code
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function render(ResponseInterface $response, \Aimeos\Base\View\Iface $view, $status): \Psr\Http\Message\ResponseInterface
+    protected function render(Response_Interface $response, \Aimeos\Base\View\Iface $view, $status): \Psr\Http\Message\Response_Interface
     {
         if ($view->param('aggregate')) {
             /** client/jsonapi/review/template-aggregate
@@ -343,13 +289,7 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
             $tplconf = 'client/jsonapi/review/template';
             $default = 'review/standard';
         }
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
 }

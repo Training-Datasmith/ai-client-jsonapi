@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Basket\Address;
 
-namespace Aimeos\Client\JsonApi\Basket\Address;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API basket/address client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Basket\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/basket/address/name
      * Class name of the used basket/address client implementation
@@ -55,7 +52,6 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/basket/address/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @see client/jsonapi/basket/address/decorators/global
      * @see client/jsonapi/basket/address/decorators/local
      */
-
     /** client/jsonapi/basket/address/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @see client/jsonapi/basket/address/decorators/excludes
      * @see client/jsonapi/basket/address/decorators/local
      */
-
     /** client/jsonapi/basket/address/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,21 +127,17 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @see client/jsonapi/basket/address/decorators/excludes
      * @see client/jsonapi/basket/address/decorators/global
      */
-
     private \Aimeos\Controller\Frontend\Basket\Iface $controller;
-
     /**
      * Initializes the client
      *
      * @param \Aimeos\MShop\ContextIface $context MShop context object
      */
-    public function __construct(\Aimeos\MShop\ContextIface $context)
+    public function __construct(\Aimeos\M_Shop\Context_Iface $context)
     {
         parent::__construct($context);
-
         $this->controller = \Aimeos\Controller\Frontend::create($this->context(), 'basket');
     }
-
     /**
      * Deletes the resource or the resource list
      *
@@ -155,53 +145,44 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function delete(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function delete(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $this->clearCache();
-            $this->controller->setType($view->param('id', 'default'));
-
-            $relId = $view->param('relatedid');
-            $body = (string) $request->getBody();
-
-            if ($relId === '' || $relId === null) {
+            $this->clear_cache();
+            $this->controller->set_type($view->param('id', 'default'));
+            $rel_id = $view->param('relatedid');
+            $body = (string) $request->get_body();
+            if ($rel_id === '' || $rel_id === null) {
                 if (($payload = json_decode($body)) === null || !isset($payload->data)) {
-                    throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                    throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
                 }
-
                 if (!is_array($payload->data)) {
                     $payload->data = [$payload->data];
                 }
-
                 foreach ($payload->data as $entry) {
                     if (!isset($entry->id)) {
-                        throw new \Aimeos\Client\JsonApi\Exception('Type (ID) is missing', 400);
+                        throw new \Aimeos\Client\Json_Api\Exception('Type (ID) is missing', 400);
                     }
-
-                    $this->controller->deleteAddress($entry->id);
+                    $this->controller->delete_address($entry->id);
                 }
             } else {
-                $this->controller->deleteAddress($relId);
+                $this->controller->delete_address($rel_id);
             }
-
             $view->item = $this->controller->get();
             $status = 200;
-        } catch (\Aimeos\MShop\Plugin\Provider\Exception $e) {
+        } catch (\Aimeos\M_Shop\Plugin\Provider\Exception $e) {
             $status = 409;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'mshop');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Updates the resource or the resource list partitially
      *
@@ -209,52 +190,42 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function patch(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function patch(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $this->clearCache();
-            $this->controller->setType($view->param('id', 'default'));
-
-            $body = (string) $request->getBody();
-
+            $this->clear_cache();
+            $this->controller->set_type($view->param('id', 'default'));
+            $body = (string) $request->get_body();
             if (($payload = json_decode($body)) === null || !isset($payload->data)) {
-                throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
             }
-
             if (!is_array($payload->data)) {
                 $payload->data = [$payload->data];
             }
-
-            if ($relId = $view->param('relatedid')) {
-                $this->controller->deleteAddress($relId);
+            if ($rel_id = $view->param('relatedid')) {
+                $this->controller->delete_address($rel_id);
             }
-
             foreach ($payload->data as $entry) {
                 if (!isset($entry->id) || !isset($entry->attributes)) {
-                    throw new \Aimeos\Client\JsonApi\Exception('Address type or attributes are missing', 400);
+                    throw new \Aimeos\Client\Json_Api\Exception('Address type or attributes are missing', 400);
                 }
-
-                $this->controller->addAddress($entry->id, (array) $entry->attributes);
+                $this->controller->add_address($entry->id, (array) $entry->attributes);
             }
-
             $view->item = $this->controller->get();
             $status = 200;
-        } catch (\Aimeos\MShop\Plugin\Provider\Exception $e) {
+        } catch (\Aimeos\M_Shop\Plugin\Provider\Exception $e) {
             $status = 409;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'mshop');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Creates or updates the resource or the resource list
      *
@@ -262,48 +233,39 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function post(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function post(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $this->clearCache();
-            $this->controller->setType($view->param('id', 'default'));
-
-            $body = (string) $request->getBody();
-
+            $this->clear_cache();
+            $this->controller->set_type($view->param('id', 'default'));
+            $body = (string) $request->get_body();
             if (($payload = json_decode($body)) === null || !isset($payload->data)) {
-                throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
             }
-
             if (!is_array($payload->data)) {
                 $payload->data = [$payload->data];
             }
-
             foreach ($payload->data as $entry) {
                 if (!isset($entry->id) || !isset($entry->attributes)) {
-                    throw new \Aimeos\Client\JsonApi\Exception('Address type or attributes are missing', 400);
+                    throw new \Aimeos\Client\Json_Api\Exception('Address type or attributes are missing', 400);
                 }
-
-                $this->controller->addAddress($entry->id, (array) $entry->attributes);
+                $this->controller->add_address($entry->id, (array) $entry->attributes);
             }
-
             $view->item = $this->controller->get();
             $status = 201;
-        } catch (\Aimeos\MShop\Plugin\Provider\Exception $e) {
+        } catch (\Aimeos\M_Shop\Plugin\Provider\Exception $e) {
             $status = 409;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'mshop');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -311,109 +273,15 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
-        $view->attributes = [
-            'addressid' => [
-                'label' => 'ID of the customer address',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'salutation' => [
-                'label' => 'Customer salutation, i.e. "comany" ,"mr", "ms" or ""',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'company' => [
-                'label' => 'Company name',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'vatid' => [
-                'label' => 'VAT ID of the company',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'title' => [
-                'label' => 'Title of the customer',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'firstname' => [
-                'label' => 'First name of the customer',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'lastname' => [
-                'label' => 'Last name of the customer or full name',
-                'type' => 'string', 'default' => '', 'required' => true,
-            ],
-            'address1' => [
-                'label' => 'First address part like street',
-                'type' => 'string', 'default' => '', 'required' => true,
-            ],
-            'address2' => [
-                'label' => 'Second address part like house number',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'address3' => [
-                'label' => 'Third address part like flat number',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'postal' => [
-                'label' => 'Zip code of the city',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'city' => [
-                'label' => 'Name of the town/city',
-                'type' => 'string', 'default' => '', 'required' => true,
-            ],
-            'state' => [
-                'label' => 'Two letter code of the country state',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'countryid' => [
-                'label' => 'Two letter ISO country code',
-                'type' => 'string', 'default' => '', 'required' => true,
-            ],
-            'languageid' => [
-                'label' => 'Two or five letter ISO language code, e.g. "de" or "de_CH"',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'telephone' => [
-                'label' => 'Telephone number consisting of optional leading "+" and digits without spaces',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'telefax' => [
-                'label' => 'Facsimile number consisting of optional leading "+" and digits without spaces',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'email' => [
-                'label' => 'E-mail address',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'website' => [
-                'label' => 'Web site including "http://" or "https://"',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'longitude' => [
-                'label' => 'Longitude of the customer location as float value',
-                'type' => 'float', 'default' => '', 'required' => false,
-            ],
-            'latitude' => [
-                'label' => 'Latitude of the customer location as float value',
-                'type' => 'float', 'default' => '', 'required' => false,
-            ],
-        ];
-
+        $view->attributes = ['addressid' => ['label' => 'ID of the customer address', 'type' => 'string', 'default' => '', 'required' => false], 'salutation' => ['label' => 'Customer salutation, i.e. "comany" ,"mr", "ms" or ""', 'type' => 'string', 'default' => '', 'required' => false], 'company' => ['label' => 'Company name', 'type' => 'string', 'default' => '', 'required' => false], 'vatid' => ['label' => 'VAT ID of the company', 'type' => 'string', 'default' => '', 'required' => false], 'title' => ['label' => 'Title of the customer', 'type' => 'string', 'default' => '', 'required' => false], 'firstname' => ['label' => 'First name of the customer', 'type' => 'string', 'default' => '', 'required' => false], 'lastname' => ['label' => 'Last name of the customer or full name', 'type' => 'string', 'default' => '', 'required' => true], 'address1' => ['label' => 'First address part like street', 'type' => 'string', 'default' => '', 'required' => true], 'address2' => ['label' => 'Second address part like house number', 'type' => 'string', 'default' => '', 'required' => false], 'address3' => ['label' => 'Third address part like flat number', 'type' => 'string', 'default' => '', 'required' => false], 'postal' => ['label' => 'Zip code of the city', 'type' => 'string', 'default' => '', 'required' => false], 'city' => ['label' => 'Name of the town/city', 'type' => 'string', 'default' => '', 'required' => true], 'state' => ['label' => 'Two letter code of the country state', 'type' => 'string', 'default' => '', 'required' => false], 'countryid' => ['label' => 'Two letter ISO country code', 'type' => 'string', 'default' => '', 'required' => true], 'languageid' => ['label' => 'Two or five letter ISO language code, e.g. "de" or "de_CH"', 'type' => 'string', 'default' => '', 'required' => false], 'telephone' => ['label' => 'Telephone number consisting of optional leading "+" and digits without spaces', 'type' => 'string', 'default' => '', 'required' => false], 'telefax' => ['label' => 'Facsimile number consisting of optional leading "+" and digits without spaces', 'type' => 'string', 'default' => '', 'required' => false], 'email' => ['label' => 'E-mail address', 'type' => 'string', 'default' => '', 'required' => false], 'website' => ['label' => 'Web site including "http://" or "https://"', 'type' => 'string', 'default' => '', 'required' => false], 'longitude' => ['label' => 'Longitude of the customer location as float value', 'type' => 'float', 'default' => '', 'required' => false], 'latitude' => ['label' => 'Latitude of the customer location as float value', 'type' => 'float', 'default' => '', 'required' => false]];
         $tplconf = 'client/jsonapi/template-options';
         $default = 'options-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus(200);
+        return $response->with_header('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status(200);
     }
-
     /**
      * Returns the response object with the rendered header and body
      *
@@ -422,17 +290,11 @@ class Standard extends \Aimeos\Client\JsonApi\Basket\Base implements \Aimeos\Cli
      * @param int $status HTTP status code
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function render(ResponseInterface $response, \Aimeos\Base\View\Iface $view, int $status): \Psr\Http\Message\ResponseInterface
+    protected function render(Response_Interface $response, \Aimeos\Base\View\Iface $view, int $status): \Psr\Http\Message\Response_Interface
     {
         $tplconf = 'client/jsonapi/basket/template';
         $default = 'basket/standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')
-            ->withHeader('Cache-Control', 'no-cache, private')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')->with_header('Cache-Control', 'no-cache, private')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
 }

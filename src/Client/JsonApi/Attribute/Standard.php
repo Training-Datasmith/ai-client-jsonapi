@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Attribute;
 
-namespace Aimeos\Client\JsonApi\Attribute;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API standard client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/attribute/name
      * Class name of the used attribute client implementation
@@ -55,7 +52,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/attribute/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/attribute/decorators/global
      * @see client/jsonapi/attribute/decorators/local
      */
-
     /** client/jsonapi/attribute/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/attribute/decorators/excludes
      * @see client/jsonapi/attribute/decorators/local
      */
-
     /** client/jsonapi/attribute/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,7 +127,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/attribute/decorators/excludes
      * @see client/jsonapi/attribute/decorators/global
      */
-
     /**
      * Returns the resource or the resource list
      *
@@ -141,26 +134,23 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
             if ($view->param('id')) {
-                $response = $this->getItem($view, $request, $response);
+                $response = $this->get_item($view, $request, $response);
             } else {
-                $response = $this->getItems($view, $request, $response);
+                $response = $this->get_items($view, $request, $response);
             }
-
             $status = 200;
-        } catch (\Aimeos\MShop\Exception $e) {
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         /** client/jsonapi/attribute/template
          * Relative path to the attribute lists JSON API template
          *
@@ -182,16 +172,9 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
          */
         $tplconf = 'client/jsonapi/attribute/template';
         $default = 'attribute/standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -199,11 +182,10 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
-        return $this->getOptionsResponse($request, $response, 'GET,OPTIONS');
+        return $this->get_options_response($request, $response, 'GET,OPTIONS');
     }
-
     /**
      * Retrieves the item and adds the data to the view
      *
@@ -212,22 +194,17 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function getItem(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function get_item(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $ref = $view->param('include', []);
-
         if (is_string($ref)) {
             $ref = explode(',', str_replace('.', '/', $ref));
         }
-
         $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'attribute');
-
         $view->items = $cntl->uses($ref)->get($view->param('id'));
         $view->total = 1;
-
         return $response;
     }
-
     /**
      * Retrieves the items and adds the data to the view
      *
@@ -236,7 +213,7 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function getItems(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function get_items(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         /** client/jsonapi/attribute/types
          * List of attribute types that should be displayed in this order in the catalog filter
@@ -256,42 +233,28 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
          * @since 2017.03
          * @category Developer
          */
-        $attrTypes = $this->context()->config()->get('client/jsonapi/attribute/types', []);
-
+        $attr_types = $this->context()->config()->get('client/jsonapi/attribute/types', []);
         $total = 0;
-        $attrMap = [];
-
+        $attr_map = [];
         $ref = $view->param('include', []);
-
         if (is_string($ref)) {
             $ref = explode(',', str_replace('.', '/', $ref));
         }
-
-        $items = \Aimeos\Controller\Frontend::create($this->context(), 'attribute')
-            ->uses($ref)->sort($view->param('sort', 'position'))->type($attrTypes)
-            ->slice($view->param('page/offset', 0), $view->param('page/limit', 25))
-            ->parse((array) $view->param('filter', []))
-            ->search($total);
-
+        $items = \Aimeos\Controller\Frontend::create($this->context(), 'attribute')->uses($ref)->sort($view->param('sort', 'position'))->type($attr_types)->slice($view->param('page/offset', 0), $view->param('page/limit', 25))->parse((array) $view->param('filter', []))->search($total);
         foreach ($items as $id => $item) {
-            $attrMap[$item->getType()][$id] = $item;
+            $attr_map[$item->get_type()][$id] = $item;
         }
-
-        if (!empty($attrTypes)) {
+        if (!empty($attr_types)) {
             $sorted = map();
-
-            foreach ($attrTypes as $type) {
-                if (isset($attrMap[$type])) {
-                    $sorted->merge($attrMap[$type]);
+            foreach ($attr_types as $type) {
+                if (isset($attr_map[$type])) {
+                    $sorted->merge($attr_map[$type]);
                 }
             }
-
             $items = $sorted;
         }
-
         $view->items = $items;
         $view->total = $total;
-
         return $response;
     }
 }

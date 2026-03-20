@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Basket;
 
-namespace Aimeos\Client\JsonApi\Basket;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API basket client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/basket/name
      * Class name of the used basket client implementation
@@ -55,7 +52,6 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/basket/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @see client/jsonapi/basket/decorators/global
      * @see client/jsonapi/basket/decorators/local
      */
-
     /** client/jsonapi/basket/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @see client/jsonapi/basket/decorators/excludes
      * @see client/jsonapi/basket/decorators/local
      */
-
     /** client/jsonapi/basket/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,21 +127,17 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @see client/jsonapi/basket/decorators/excludes
      * @see client/jsonapi/basket/decorators/global
      */
-
     private \Aimeos\Controller\Frontend\Basket\Iface $controller;
-
     /**
      * Initializes the client
      *
      * @param \Aimeos\MShop\ContextIface $context MShop context object
      */
-    public function __construct(\Aimeos\MShop\ContextIface $context)
+    public function __construct(\Aimeos\M_Shop\Context_Iface $context)
     {
         parent::__construct($context);
-
         $this->controller = \Aimeos\Controller\Frontend::create($this->context(), 'basket');
     }
-
     /**
      * Deletes the resource or the resource list
      *
@@ -155,30 +145,26 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function delete(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function delete(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $this->clearCache();
-
+            $this->clear_cache();
             $status = 200;
             $type = $view->param('id', 'default');
-            $view->item = $this->controller->setType($type)->clear()->get();
-        } catch (\Aimeos\MShop\Plugin\Provider\Exception $e) {
+            $view->item = $this->controller->set_type($type)->clear()->get();
+        } catch (\Aimeos\M_Shop\Plugin\Provider\Exception $e) {
             $status = 409;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'mshop');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Returns the resource or the resource list
      *
@@ -186,35 +172,30 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $allow = false;
         $view = $this->view();
         $id = $view->param('id', 'default');
-
         $include = $view->param('include', 'basket/address,basket/coupon,basket/product,basket/service');
         $include = explode(',', str_replace('basket', 'order', str_replace('.', '/', $include)));
-
         try {
             try {
                 $view->item = $this->controller->load($id, $include);
-            } catch (\Aimeos\MShop\Exception $e) {
-                $view->item = $this->controller->setType($id)->get();
+            } catch (\Aimeos\M_Shop\Exception $e) {
+                $view->item = $this->controller->set_type($id)->get();
                 $allow = true;
             }
-
             $status = 200;
-        } catch (\Aimeos\MShop\Exception $e) {
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status, $allow);
     }
-
     /**
      * Updates the resource or the resource list partitially
      *
@@ -222,38 +203,30 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function patch(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function patch(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $this->clearCache();
-
-            $body = (string) $request->getBody();
-
+            $this->clear_cache();
+            $body = (string) $request->get_body();
             if (($payload = json_decode($body)) === null || !isset($payload->data->attributes)) {
-                throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
             }
-
-            $basket = $this->controller->setType($view->param('id', 'default'))
-                ->add((array) $payload->data->attributes)->save()->get();
-
+            $basket = $this->controller->set_type($view->param('id', 'default'))->add((array) $payload->data->attributes)->save()->get();
             $view->item = $basket;
             $status = 200;
-        } catch (\Aimeos\MShop\Plugin\Provider\Exception $e) {
+        } catch (\Aimeos\M_Shop\Plugin\Provider\Exception $e) {
             $status = 409;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'mshop');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Creates or updates the resource or the resource list
      *
@@ -261,36 +234,30 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function post(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function post(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $userId = (string) $this->context()->user()?->getId();
-
-            $this->controller->setType($view->param('id', 'default'));
-            $this->controller->get()->setChannel('jsonapi')->setCustomerId($userId)->check();
-            $this->clearCache();
-
+            $user_id = (string) $this->context()->user()?->get_id();
+            $this->controller->set_type($view->param('id', 'default'));
+            $this->controller->get()->set_channel('jsonapi')->set_customer_id($user_id)->check();
+            $this->clear_cache();
             $item = $this->controller->store();
-            $this->context()->session()->set('aimeos/order.id', $item->getId());
-
+            $this->context()->session()->set('aimeos/order.id', $item->get_id());
             $view->item = $item;
             $status = 200;
-        } catch (\Aimeos\MShop\Plugin\Provider\Exception $e) {
+        } catch (\Aimeos\M_Shop\Plugin\Provider\Exception $e) {
             $status = 409;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'mshop');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -298,33 +265,15 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
-        $view->attributes = [
-            'order.comment' => [
-                'label' => 'Customer comment for the order',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'order.customerref' => [
-                'label' => 'Own reference of the customer for the order',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-        ];
-
+        $view->attributes = ['order.comment' => ['label' => 'Customer comment for the order', 'type' => 'string', 'default' => '', 'required' => false], 'order.customerref' => ['label' => 'Own reference of the customer for the order', 'type' => 'string', 'default' => '', 'required' => false]];
         $tplconf = 'client/jsonapi/template-options';
         $default = 'options-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus(200);
+        return $response->with_header('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status(200);
     }
-
     /**
      * Returns the response object with the rendered header and body
      *
@@ -334,7 +283,7 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
      * @param bool $allow True to allow all HTTP methods, false for GET only
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function render(ResponseInterface $response, \Aimeos\Base\View\Iface $view, int $status, bool $allow = true): \Psr\Http\Message\ResponseInterface
+    protected function render(Response_Interface $response, \Aimeos\Base\View\Iface $view, int $status, bool $allow = true): \Psr\Http\Message\Response_Interface
     {
         /** client/jsonapi/basket/template
          * Relative path to the basket JSON API template
@@ -357,19 +306,12 @@ class Standard extends Base implements \Aimeos\Client\JsonApi\Iface
          */
         $tplconf = 'client/jsonapi/basket/template';
         $default = 'basket/standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
         if ($allow === true) {
             $methods = 'DELETE,GET,OPTIONS,PATCH,POST';
         } else {
             $methods = 'GET';
         }
-
-        return $response->withHeader('Allow', $methods)
-            ->withHeader('Cache-Control', 'no-cache, private')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', $methods)->with_header('Cache-Control', 'no-cache, private')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
 }

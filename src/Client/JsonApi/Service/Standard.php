@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Service;
 
-namespace Aimeos\Client\JsonApi\Service;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API standard client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/service/name
      * Class name of the used service client implementation
@@ -55,7 +52,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/service/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/service/decorators/global
      * @see client/jsonapi/service/decorators/local
      */
-
     /** client/jsonapi/service/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/service/decorators/excludes
      * @see client/jsonapi/service/decorators/local
      */
-
     /** client/jsonapi/service/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,7 +127,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/service/decorators/excludes
      * @see client/jsonapi/service/decorators/global
      */
-
     /**
      * Returns the resource or the resource list
      *
@@ -141,30 +134,23 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
             $ref = $view->param('include', ['media', 'price', 'text']);
-
             if (is_string($ref)) {
                 $ref = explode(',', str_replace('.', '/', $ref));
             }
-
-            $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'service')->uses($ref)
-                ->slice($view->param('page/offset', 0), $view->param('page/limit', 100));
-
-            $basketCntl = \Aimeos\Controller\Frontend::create($this->context(), 'basket');
-            $basket = $basketCntl->get();
-
+            $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'service')->uses($ref)->slice($view->param('page/offset', 0), $view->param('page/limit', 100));
+            $basket_cntl = \Aimeos\Controller\Frontend::create($this->context(), 'basket');
+            $basket = $basket_cntl->get();
             if ($id = $view->param('id')) {
-                $provider = $cntl->getProvider($id);
-
-                if ($provider->isAvailable($basket) === true) {
-                    $view->prices = map([$id => $provider->calcPrice($basket)]);
-                    $view->attributes = [$id => $provider->getConfigFE($basket)];
-                    $view->items = $provider->getServiceItem();
+                $provider = $cntl->get_provider($id);
+                if ($provider->is_available($basket) === true) {
+                    $view->prices = map([$id => $provider->calc_price($basket)]);
+                    $view->attributes = [$id => $provider->get_config_fe($basket)];
+                    $view->items = $provider->get_service_item();
                     $view->total = 1;
                 }
             } else {
@@ -172,30 +158,26 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
                 $items = map();
                 $prices = map();
                 $cntl->type($view->param('filter/cs_type'));
-
-                foreach ($cntl->getProviders() as $id => $provider) {
-                    if ($provider->isAvailable($basket) === true) {
-                        $attributes[$id] = $provider->getConfigFE($basket);
-                        $prices[$id] = $provider->calcPrice($basket);
-                        $items[$id] = $provider->getServiceItem();
+                foreach ($cntl->get_providers() as $id => $provider) {
+                    if ($provider->is_available($basket) === true) {
+                        $attributes[$id] = $provider->get_config_fe($basket);
+                        $prices[$id] = $provider->calc_price($basket);
+                        $items[$id] = $provider->get_service_item();
                     }
                 }
-
                 $view->attributes = $attributes;
                 $view->prices = $prices;
                 $view->items = $items;
                 $view->total = count($items);
             }
-
             $status = 200;
-        } catch (\Aimeos\MShop\Exception $e) {
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         /** client/jsonapi/service/template
          * Relative path to the service JSON API template
          *
@@ -217,16 +199,9 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
          */
         $tplconf = 'client/jsonapi/service/template';
         $default = 'service/standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -234,26 +209,13 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
-        $view->filter = [
-            'cs_type' => [
-                'label' => 'Type of the service items that should be returned ("delivery" or "payment")',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-        ];
-
+        $view->filter = ['cs_type' => ['label' => 'Type of the service items that should be returned ("delivery" or "payment")', 'type' => 'string', 'default' => '', 'required' => false]];
         $tplconf = 'client/jsonapi/template-options';
         $default = 'options-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus(200);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status(200);
     }
 }

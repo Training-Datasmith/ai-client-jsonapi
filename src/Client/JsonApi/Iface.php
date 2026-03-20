@@ -1,19 +1,16 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api;
 
-namespace Aimeos\Client\JsonApi;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API client interface
  *
@@ -29,8 +26,7 @@ interface Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function delete(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface;
-
+    public function delete(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface;
     /**
      * Returns the requested resource or the resource list
      *
@@ -38,8 +34,7 @@ interface Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface;
-
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface;
     /**
      * Updates the resource or the resource list partitially
      *
@@ -47,8 +42,7 @@ interface Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function patch(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface;
-
+    public function patch(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface;
     /**
      * Creates or updates the resource or the resource list
      *
@@ -56,8 +50,7 @@ interface Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function post(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface;
-
+    public function post(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface;
     /**
      * Creates or updates the resource or the resource list
      *
@@ -65,8 +58,7 @@ interface Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function put(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface;
-
+    public function put(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface;
     /**
      * Returns the available REST verbs
      *
@@ -74,13 +66,12 @@ interface Iface
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface;
-
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface;
     /**
      * Sets the view object that will generate the HTML output.
      *
      * @param \Aimeos\Base\View\Iface $view The view object which generates the HTML output
      * @return \Aimeos\Client\JsonApi\Iface Reference to this object for fluent calls
      */
-    public function setView(\Aimeos\Base\View\Iface $view): \Aimeos\Client\JsonApi\Iface;
+    public function set_view(\Aimeos\Base\View\Iface $view): \Aimeos\Client\Json_Api\Iface;
 }

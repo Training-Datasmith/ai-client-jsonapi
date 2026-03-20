@@ -6,338 +6,301 @@
  * @package Client
  * @subpackage JsonApi
  */
-
 $enc = $this->encoder();
-
 $target = $this->config('client/jsonapi/url/target');
 $cntl = $this->config('client/jsonapi/url/controller', 'jsonapi');
 $action = $this->config('client/jsonapi/url/action', 'get');
 $config = $this->config('client/jsonapi/url/config', []);
-
-$basketId = (isset($this->item) && $this->item->getId() ? $this->item->getId() : ($this->param('id') ?: 'default'));
-$ref = [ 'resource', 'id', 'filter', 'page', 'sort', 'include', 'fields' ]; // no related/relatedid for basket self URL
+$basket_id = isset($this->item) && $this->item->get_id() ? $this->item->get_id() : ($this->param('id') ?: 'default');
+$ref = ['resource', 'id', 'filter', 'page', 'sort', 'include', 'fields'];
+// no related/relatedid for basket self URL
 $params = array_intersect_key($this->param(), array_flip($ref));
-
 $pretty = $this->param('pretty') ? JSON_PRETTY_PRINT : 0;
 $fields = $this->param('fields', []);
-
 foreach ((array) $fields as $resource => $list) {
     $fields[$resource] = array_flip(explode(',', $list));
 }
-
-$entryFcn = function (\Aimeos\MShop\Order\Item\Iface $item, $basketId) use ($fields, $target, $cntl, $action, $config) {
-    $allow = [ 'GET' ];
-    $attributes = $item->toArray();
-    $params = ['resource' => 'basket', 'id' => $basketId];
-
+$entry_fcn = function (\Aimeos\M_Shop\Order\Item\Iface $item, $basket_id) use ($fields, $target, $cntl, $action, $config) {
+    $allow = ['GET'];
+    $attributes = $item->to_array();
+    $params = ['resource' => 'basket', 'id' => $basket_id];
     if (($filter = $this->param('filter', [])) !== []) {
         $params['filter'] = $filter;
     }
-
-    if ($item->getId() === null) {
-        $allow = [ 'DELETE', 'GET', 'PATCH', 'POST' ];
+    if ($item->get_id() === null) {
+        $allow = ['DELETE', 'GET', 'PATCH', 'POST'];
     }
-
     if (isset($fields['basket'])) {
         $attributes = array_intersect_key($attributes, $fields['basket']);
     }
-
     $relationships = [];
     $types = explode(',', $this->param('include', 'basket.product,basket.service,basket.address,basket.coupon'));
-
     if (in_array('basket.product', $types)) {
-        foreach ($item->getProducts() as $position => $list) {
+        foreach ($item->get_products() as $position => $list) {
             $relationships['basket.product']['data'][] = ['type' => 'basket.product', 'id' => $position];
         }
     }
-
     if (in_array('basket.service', $types)) {
-        foreach ($item->getServices() as $type => $list) {
+        foreach ($item->get_services() as $type => $list) {
             if (count($list) > 0) {
                 $relationships['basket.service']['data'][] = ['type' => 'basket.service', 'id' => $type];
             }
         }
     }
-
     if (in_array('basket.address', $types)) {
-        foreach ($item->getAddresses() as $type => $list) {
+        foreach ($item->get_addresses() as $type => $list) {
             $relationships['basket.address']['data'][] = ['type' => 'basket.address', 'id' => $type];
         }
     }
-
     if (in_array('basket.coupon', $types)) {
-        foreach ($item->getCoupons() as $code => $list) {
+        foreach ($item->get_coupons() as $code => $list) {
             $relationships['basket.coupon']['data'][] = ['type' => 'basket.coupon', 'id' => $code];
         }
     }
-
-    if ($customer = $item->getCustomerItem()) {
-        $relationships['customer']['data'][] = ['type' => 'customer', 'id' => $customer->getId()];
+    if ($customer = $item->get_customer_item()) {
+        $relationships['customer']['data'][] = ['type' => 'customer', 'id' => $customer->get_id()];
     }
-
-    return [
-        'id' => $basketId,
-        'type' => 'basket',
-        'links' => [
-            'self' => [
-                'href' => $this->url($target, $cntl, $action, $params, [], $config),
-                'allow' => $allow,
-            ],
-        ],
-        'attributes' => $attributes,
-        'relationships' => (object) $relationships,
-    ];
+    return ['id' => $basket_id, 'type' => 'basket', 'links' => ['self' => ['href' => $this->url($target, $cntl, $action, $params, [], $config), 'allow' => $allow]], 'attributes' => $attributes, 'relationships' => (object) $relationships];
 };
-
-$productFcn = function (\Aimeos\MShop\Order\Item\Iface $item, $basketId) use ($fields, $target, $cntl, $action, $config) {
+$product_fcn = function (\Aimeos\M_Shop\Order\Item\Iface $item, $basket_id) use ($fields, $target, $cntl, $action, $config) {
     $result = [];
-
-    foreach ($item->getProducts() as $position => $orderProduct) {
+    foreach ($item->get_products() as $position => $order_product) {
         $entry = ['id' => $position, 'type' => 'basket.product'];
-        $entry['attributes'] = $orderProduct->toArray();
-
+        $entry['attributes'] = $order_product->to_array();
         if (isset($fields['basket.product'])) {
             $entry['attributes'] = array_intersect_key($entry['attributes'], $fields['basket.product']);
         }
-
-        if ($item->getId() === null && $orderProduct->getFlags() !== \Aimeos\MShop\Order\Item\Product\Base::FLAG_IMMUTABLE) {
-            $params = ['resource' => 'basket', 'id' => $basketId, 'related' => 'product', 'relatedid' => $position];
-            $entry['links'] = [
-                'self' => [
-                    'href' => $this->url($target, $cntl, $action, $params, [], $config),
-                    'allow' => ['DELETE', 'PATCH'],
-                ],
-            ];
+        if ($item->get_id() === null && $order_product->get_flags() !== \Aimeos\M_Shop\Order\Item\Product\Base::FLAG_IMMUTABLE) {
+            $params = ['resource' => 'basket', 'id' => $basket_id, 'related' => 'product', 'relatedid' => $position];
+            $entry['links'] = ['self' => ['href' => $this->url($target, $cntl, $action, $params, [], $config), 'allow' => ['DELETE', 'PATCH']]];
         }
-
-        foreach ($orderProduct->getProducts() as $subProduct) {
-            $subEntry = $subProduct->toArray();
-
-            foreach ($subProduct->getAttributeItems() as $attribute) {
-                $subEntry['attribute'][] = $attribute->toArray();
+        foreach ($order_product->get_products() as $sub_product) {
+            $sub_entry = $sub_product->to_array();
+            foreach ($sub_product->get_attribute_items() as $attribute) {
+                $sub_entry['attribute'][] = $attribute->to_array();
             }
-
-            $entry['attributes']['product'][] = $subEntry;
+            $entry['attributes']['product'][] = $sub_entry;
         }
-
-        foreach ($orderProduct->getAttributeItems() as $attribute) {
-            $entry['attributes']['attribute'][] = $attribute->toArray();
+        foreach ($order_product->get_attribute_items() as $attribute) {
+            $entry['attributes']['attribute'][] = $attribute->to_array();
         }
-
-        if ($product = $orderProduct->getProductItem()) {
-            $entry['relationships']['product']['data'][] = ['type' => 'product', 'id' => $product->getId()];
+        if ($product = $order_product->get_product_item()) {
+            $entry['relationships']['product']['data'][] = ['type' => 'product', 'id' => $product->get_id()];
             $result = array_merge($result, $this->jincluded($product, $fields));
         }
-
         $result['order.product'][] = $entry;
     }
-
     return $result;
 };
-
-$serviceFcn = function (\Aimeos\MShop\Order\Item\Iface $item, $basketId) use ($fields, $target, $cntl, $action, $config) {
+$service_fcn = function (\Aimeos\M_Shop\Order\Item\Iface $item, $basket_id) use ($fields, $target, $cntl, $action, $config) {
     $result = [];
-
-    foreach ($item->getServices() as $type => $list) {
-        foreach ($list as $orderService) {
+    foreach ($item->get_services() as $type => $list) {
+        foreach ($list as $order_service) {
             $entry = ['id' => $type, 'type' => 'basket.service'];
-            $entry['attributes'] = $orderService->toArray();
-
+            $entry['attributes'] = $order_service->to_array();
             if (isset($fields['basket.service'])) {
                 $entry['attributes'] = array_intersect_key($entry['attributes'], $fields['basket.service']);
             }
-
-            if ($item->getId() === null) {
-                $params = ['resource' => 'basket', 'id' => $basketId, 'related' => 'service', 'relatedid' => $type];
-                $entry['links'] = [
-                    'self' => [
-                        'href' => $this->url($target, $cntl, $action, $params, [], $config),
-                        'allow' => ['DELETE', 'PATCH'],
-                    ],
-                ];
+            if ($item->get_id() === null) {
+                $params = ['resource' => 'basket', 'id' => $basket_id, 'related' => 'service', 'relatedid' => $type];
+                $entry['links'] = ['self' => ['href' => $this->url($target, $cntl, $action, $params, [], $config), 'allow' => ['DELETE', 'PATCH']]];
             }
-
-            foreach ($orderService->getAttributeItems() as $attribute) {
-                $entry['attributes']['attribute'][] = $attribute->toArray();
+            foreach ($order_service->get_attribute_items() as $attribute) {
+                $entry['attributes']['attribute'][] = $attribute->to_array();
             }
-
-            if ($service = $orderService->getServiceItem()) {
-                $entry['relationships']['service']['data'][] = ['type' => 'service', 'id' => $service->getId()];
+            if ($service = $order_service->get_service_item()) {
+                $entry['relationships']['service']['data'][] = ['type' => 'service', 'id' => $service->get_id()];
                 $result = array_merge($result, $this->jincluded($service, $fields));
             }
-
             $result['order.service'][] = $entry;
         }
     }
-
     return $result;
 };
-
-$addressFcn = function (\Aimeos\MShop\Order\Item\Iface $item, $basketId) use ($fields, $target, $cntl, $action, $config) {
+$address_fcn = function (\Aimeos\M_Shop\Order\Item\Iface $item, $basket_id) use ($fields, $target, $cntl, $action, $config) {
     $list = [];
-
-    foreach ($item->getAddresses() as $type => $addresses) {
+    foreach ($item->get_addresses() as $type => $addresses) {
         foreach ($addresses as $address) {
             $entry = ['id' => $type, 'type' => 'basket.address'];
-            $entry['attributes'] = $address->toArray();
-
+            $entry['attributes'] = $address->to_array();
             if (isset($fields['basket.address'])) {
                 $entry['attributes'] = array_intersect_key($entry['attributes'], $fields['basket.address']);
             }
-
-            if ($item->getId() === null) {
-                $params = ['resource' => 'basket', 'id' => $basketId, 'related' => 'address', 'relatedid' => $type];
-                $entry['links'] = [
-                    'self' => [
-                        'href' => $this->url($target, $cntl, $action, $params, [], $config),
-                        'allow' => ['DELETE', 'PATCH'],
-                    ],
-                ];
+            if ($item->get_id() === null) {
+                $params = ['resource' => 'basket', 'id' => $basket_id, 'related' => 'address', 'relatedid' => $type];
+                $entry['links'] = ['self' => ['href' => $this->url($target, $cntl, $action, $params, [], $config), 'allow' => ['DELETE', 'PATCH']]];
             }
-
             $list['order.address'][] = $entry;
         }
     }
-
     return $list;
 };
-
-$couponFcn = function (\Aimeos\MShop\Order\Item\Iface $item, $basketId) use ($fields, $target, $cntl, $action, $config) {
+$coupon_fcn = function (\Aimeos\M_Shop\Order\Item\Iface $item, $basket_id) use ($fields, $target, $cntl, $action, $config) {
     $coupons = [];
-
-    foreach ($item->getCoupons() as $code => $list) {
+    foreach ($item->get_coupons() as $code => $list) {
         $entry = ['id' => $code, 'type' => 'basket.coupon'];
-
-        if ($item->getId() === null) {
-            $params = ['resource' => 'basket', 'id' => $basketId, 'related' => 'coupon', 'relatedid' => $code];
-            $entry['links'] = [
-                'self' => [
-                    'href' => $this->url($target, $cntl, $action, $params, [], $config),
-                    'allow' => ['DELETE'],
-                ],
-            ];
+        if ($item->get_id() === null) {
+            $params = ['resource' => 'basket', 'id' => $basket_id, 'related' => 'coupon', 'relatedid' => $code];
+            $entry['links'] = ['self' => ['href' => $this->url($target, $cntl, $action, $params, [], $config), 'allow' => ['DELETE']]];
         }
-
         $coupons['order.coupon'][] = $entry;
     }
-
     return $coupons;
 };
-
-$customerFcn = function (\Aimeos\MShop\Order\Item\Iface $item) use ($fields, $target, $cntl, $action, $config) {
+$customer_fcn = function (\Aimeos\M_Shop\Order\Item\Iface $item) use ($fields, $target, $cntl, $action, $config) {
     $result = [];
-    $customer = $this->item->getCustomerItem();
-
-    if ($customer && $customer->isAvailable()) {
-        $params = ['resource' => 'customer', 'id' => $customer->getId()];
-        $entry = ['id' => $customer->getId(), 'type' => 'customer'];
-        $entry['attributes'] = $customer->toArray();
-
+    $customer = $this->item->get_customer_item();
+    if ($customer && $customer->is_available()) {
+        $params = ['resource' => 'customer', 'id' => $customer->get_id()];
+        $entry = ['id' => $customer->get_id(), 'type' => 'customer'];
+        $entry['attributes'] = $customer->to_array();
         if (isset($fields['customer'])) {
             $entry['attributes'] = array_intersect_key($entry['attributes'], $fields['customer']);
         }
-
-        $entry['links'] = [
-            'self' => [
-                'href' => $this->url($target, $cntl, $action, $params, [], $config),
-                'allow' => ['GET'],
-            ],
-        ];
-
-        $result['customer'][$customer->getId()] = $entry;
+        $entry['links'] = ['self' => ['href' => $this->url($target, $cntl, $action, $params, [], $config), 'allow' => ['GET']]];
+        $result['customer'][$customer->get_id()] = $entry;
         $result = array_replace_recursive($result, $this->jincluded($customer, $fields));
     }
-
     return $result;
 };
-
 ?>
 {
 	"meta": {
-		"total": <?= (isset($this->item) ? 1 : 0); ?>,
-		"prefix": <?= json_encode($this->get('prefix')); ?>,
-		"content-baseurl": "<?= $this->config('resource/fs/baseurl'); ?>",
+		"total": <?php 
+echo isset($this->item) ? 1 : 0;
+?>,
+		"prefix": <?php 
+echo json_encode($this->get('prefix'));
+?>,
+		"content-baseurl": "<?php 
+echo $this->config('resource/fs/baseurl');
+?>",
 		"content-baseurls": {
-			"fs-media": "<?= $this->config('resource/fs-media/baseurl') ?>",
-			"fs-mimeicon": "<?= $this->config('resource/fs-mimeicon/baseurl') ?>",
-			"fs-theme": "<?= $this->config('resource/fs-theme/baseurl') ?>"
+			"fs-media": "<?php 
+echo $this->config('resource/fs-media/baseurl');
+?>",
+			"fs-mimeicon": "<?php 
+echo $this->config('resource/fs-mimeicon/baseurl');
+?>",
+			"fs-theme": "<?php 
+echo $this->config('resource/fs-theme/baseurl');
+?>"
 		}
-		<?php if ($this->csrf()->name() != '') : ?>
+		<?php 
+if ($this->csrf()->name() != '') {
+    ?>
 			, "csrf": {
-				"name": "<?= $this->csrf()->name(); ?>",
-				"value": "<?= $this->csrf()->value(); ?>"
+				"name": "<?php 
+    echo $this->csrf()->name();
+    ?>",
+				"value": "<?php 
+    echo $this->csrf()->value();
+    ?>"
 			}
-		<?php endif; ?>
+		<?php 
+}
+?>
 
 	},
 	"links": {
 		"self": {
-			"href": "<?= $this->url($target, $cntl, $action, $params, [], $config); ?>",
-			"allow": <?= isset($this->item) && $this->item->getId() ? '["GET"]' : '["DELETE","GET","PATCH","POST"]' ?>
+			"href": "<?php 
+echo $this->url($target, $cntl, $action, $params, [], $config);
+?>",
+			"allow": <?php 
+echo isset($this->item) && $this->item->get_id() ? '["GET"]' : '["DELETE","GET","PATCH","POST"]';
+?>
 
 		}
-		<?php if (isset($this->item)) : ?>
-			<?php if ($this->item->getId() === null) : ?>
+		<?php 
+if (isset($this->item)) {
+    ?>
+			<?php 
+    if ($this->item->get_id() === null) {
+        ?>
 				,
 				"basket.product": {
-					"href": "<?= $this->url($target, $cntl, $action, ['resource' => 'basket', 'id' => $basketId, 'related' => 'product'], [], $config); ?>",
+					"href": "<?php 
+        echo $this->url($target, $cntl, $action, ['resource' => 'basket', 'id' => $basket_id, 'related' => 'product'], [], $config);
+        ?>",
 					"allow": ["DELETE", "POST"]
 				},
 				"basket.service": {
-					"href": "<?= $this->url($target, $cntl, $action, ['resource' => 'basket', 'id' => $basketId, 'related' => 'service'], [], $config); ?>",
+					"href": "<?php 
+        echo $this->url($target, $cntl, $action, ['resource' => 'basket', 'id' => $basket_id, 'related' => 'service'], [], $config);
+        ?>",
 					"allow": ["DELETE", "POST"]
 				},
 				"basket.address": {
-					"href": "<?= $this->url($target, $cntl, $action, ['resource' => 'basket', 'id' => $basketId, 'related' => 'address'], [], $config); ?>",
+					"href": "<?php 
+        echo $this->url($target, $cntl, $action, ['resource' => 'basket', 'id' => $basket_id, 'related' => 'address'], [], $config);
+        ?>",
 					"allow": ["DELETE", "POST"]
 				},
 				"basket.coupon": {
-					"href": "<?= $this->url($target, $cntl, $action, ['resource' => 'basket', 'id' => $basketId, 'related' => 'coupon'], [], $config); ?>",
+					"href": "<?php 
+        echo $this->url($target, $cntl, $action, ['resource' => 'basket', 'id' => $basket_id, 'related' => 'coupon'], [], $config);
+        ?>",
 					"allow": ["DELETE", "POST"]
 				}
-			<?php else : ?>
+			<?php 
+    } else {
+        ?>
 				,
 				"order": {
-					"href": "<?= $this->url($target, $cntl, $action, ['resource' => 'order'], [], $config); ?>",
+					"href": "<?php 
+        echo $this->url($target, $cntl, $action, ['resource' => 'order'], [], $config);
+        ?>",
 					"allow": ["POST"]
 				}
-			<?php endif; ?>
-		<?php endif; ?>
+			<?php 
+    }
+    ?>
+		<?php 
+}
+?>
 
 	}
-	<?php if (isset($this->errors)) : ?>
-		,"errors": <?= json_encode($this->errors, $pretty); ?>
+	<?php 
+if (isset($this->errors)) {
+    ?>
+		,"errors": <?php 
+    echo json_encode($this->errors, $pretty);
+    ?>
 
-	<?php elseif (isset($this->item)) : ?>
-		<?php
-            $included = [];
-	    $types = explode(',', $this->param('include', 'basket.product,basket.service,basket.address,basket.coupon'));
+	<?php 
+} elseif (isset($this->item)) {
+    ?>
+		<?php 
+    $included = [];
+    $types = explode(',', $this->param('include', 'basket.product,basket.service,basket.address,basket.coupon'));
+    if (in_array('basket.product', $types)) {
+        $included = array_replace_recursive($included, $product_fcn($this->item, $basket_id));
+    }
+    if (in_array('basket.service', $types)) {
+        $included = array_replace_recursive($included, $service_fcn($this->item, $basket_id));
+    }
+    if (in_array('basket.address', $types)) {
+        $included = array_replace_recursive($included, $address_fcn($this->item, $basket_id));
+    }
+    if (in_array('basket.coupon', $types)) {
+        $included = array_replace_recursive($included, $coupon_fcn($this->item, $basket_id));
+    }
+    if (in_array('customer', $types)) {
+        $included = array_replace_recursive($included, $customer_fcn($this->item));
+    }
+    ?>
 
-	    if (in_array('basket.product', $types)) {
-	        $included = array_replace_recursive($included, $productFcn($this->item, $basketId));
-	    }
+		,"data": <?php 
+    echo json_encode($entry_fcn($this->item, $basket_id), $pretty);
+    ?>
 
-	    if (in_array('basket.service', $types)) {
-	        $included = array_replace_recursive($included, $serviceFcn($this->item, $basketId));
-	    }
+		,"included": <?php 
+    echo map($included)->flat(1)->to_json($pretty);
+    ?>
 
-	    if (in_array('basket.address', $types)) {
-	        $included = array_replace_recursive($included, $addressFcn($this->item, $basketId));
-	    }
-
-	    if (in_array('basket.coupon', $types)) {
-	        $included = array_replace_recursive($included, $couponFcn($this->item, $basketId));
-	    }
-
-	    if (in_array('customer', $types)) {
-	        $included = array_replace_recursive($included, $customerFcn($this->item));
-	    }
-	    ?>
-
-		,"data": <?= json_encode($entryFcn($this->item, $basketId), $pretty); ?>
-
-		,"included": <?= map($included)->flat(1)->toJson($pretty) ?>
-
-	<?php endif; ?>
+	<?php 
+}
+?>
 
 }

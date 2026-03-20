@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Catalog;
 
-namespace Aimeos\Client\JsonApi\Catalog;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API standard client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/catalog/name
      * Class name of the used catalog client implementation
@@ -55,7 +52,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/catalog/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/catalog/decorators/global
      * @see client/jsonapi/catalog/decorators/local
      */
-
     /** client/jsonapi/catalog/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/catalog/decorators/excludes
      * @see client/jsonapi/catalog/decorators/local
      */
-
     /** client/jsonapi/catalog/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,7 +127,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/catalog/decorators/excludes
      * @see client/jsonapi/catalog/decorators/global
      */
-
     /**
      * Returns the resource or the resource list
      *
@@ -141,21 +134,19 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $response = $this->getItem($view, $request, $response);
+            $response = $this->get_item($view, $request, $response);
             $status = 200;
-        } catch (\Aimeos\MShop\Exception $e) {
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         /** client/jsonapi/catalog/template
          * Relative path to the catalog lists JSON API template
          *
@@ -177,16 +168,9 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
          */
         $tplconf = 'client/jsonapi/catalog/template';
         $default = 'catalog/standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -194,11 +178,10 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
-        return $this->getOptionsResponse($request, $response, 'GET,OPTIONS');
+        return $this->get_options_response($request, $response, 'GET,OPTIONS');
     }
-
     /**
      * Retrieves the items and adds the data to the view
      *
@@ -207,15 +190,13 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function getItem(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function get_item(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $ref = $view->param('include', []);
         $level = \Aimeos\MW\Tree\Manager\Base::LEVEL_ONE;
-
         if (is_string($ref)) {
             $ref = explode(',', str_replace('.', '/', $ref));
         }
-
         if (in_array('catalog', $ref, true)) {
             /** client/jsonapi/catalog/deep
              * Load the category tree instead of the nodes of the first level only
@@ -236,22 +217,16 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
              * @see client/html/catalog/filter/tree/deep
              */
             $deep = $view->config('client/jsonapi/catalog/deep', false);
-
             $level = $deep ? \Aimeos\MW\Tree\Manager\Base::LEVEL_TREE : \Aimeos\MW\Tree\Manager\Base::LEVEL_LIST;
         }
-
         $total = 1;
-        $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'catalog')->uses($ref)
-            ->slice($view->param('page/offset', 0), $view->param('page/limit', 100));
-
+        $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'catalog')->uses($ref)->slice($view->param('page/offset', 0), $view->param('page/limit', 100));
         if (($cond = (array) $view->param('filter', [])) === []) {
-            $view->items = $cntl->root($view->param('id'))->getTree($level);
+            $view->items = $cntl->root($view->param('id'))->get_tree($level);
         } else {
             $view->items = $cntl->parse($cond)->search($total);
         }
-
         $view->total = $total;
-
         return $response;
     }
 }

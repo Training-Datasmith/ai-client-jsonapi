@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Customer\Property;
 
-namespace Aimeos\Client\JsonApi\Customer\Property;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API customer/property client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/customer/property/name
      * Class name of the used customer/property client implementation
@@ -55,7 +52,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/customer/property/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/customer/property/decorators/global
      * @see client/jsonapi/customer/property/decorators/local
      */
-
     /** client/jsonapi/customer/property/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/customer/property/decorators/excludes
      * @see client/jsonapi/customer/property/decorators/local
      */
-
     /** client/jsonapi/customer/property/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,7 +127,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/customer/property/decorators/excludes
      * @see client/jsonapi/customer/property/decorators/global
      */
-
     /**
      * Deletes the resource or the resource list
      *
@@ -141,56 +134,45 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function delete(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function delete(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $body = (string) $request->getBody();
+            $body = (string) $request->get_body();
             $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'customer');
-            $items = $cntl->uses(['customer/property'])->get()->getPropertyItems();
-
-            if (($relId = $view->param('relatedid')) === null) {
+            $items = $cntl->uses(['customer/property'])->get()->get_property_items();
+            if (($rel_id = $view->param('relatedid')) === null) {
                 if (($payload = json_decode($body)) === null || !isset($payload->data)) {
-                    throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                    throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
                 }
-
                 if (!is_array($payload->data)) {
                     $payload->data = [$payload->data];
                 }
-
                 foreach ($payload->data as $entry) {
                     if (!isset($entry->id)) {
-                        throw new \Aimeos\Client\JsonApi\Exception('ID is missing', 400);
+                        throw new \Aimeos\Client\Json_Api\Exception('ID is missing', 400);
                     }
-
                     if (($item = $items->get($entry->id)) !== null) {
-                        $cntl->deletePropertyItem($item);
+                        $cntl->delete_property_item($item);
                     }
                 }
-
                 $cntl->store();
-            } else {
-                if (($item = $items->get($relId)) !== null) {
-                    $cntl->deletePropertyItem($item)->store();
-                }
+            } else if (($item = $items->get($rel_id)) !== null) {
+                $cntl->delete_property_item($item)->store();
             }
-
             $status = 200;
         } catch (\Aimeos\Controller\Frontend\Customer\Exception $e) {
             $status = 403;
-            $view->errors = $this->getErrorDetails($e, 'controller/frontend');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'controller/frontend');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Returns the resource or the resource list
      *
@@ -198,37 +180,32 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
             $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'customer');
-            $items = $cntl->uses(['customer/property'])->get()->getPropertyItems();
-
-            if (!($relId = $view->param('relatedid'))) {
+            $items = $cntl->uses(['customer/property'])->get()->get_property_items();
+            if (!$rel_id = $view->param('relatedid')) {
                 $view->items = $items;
                 $view->total = count($items);
             } else {
-                $view->items = $items->get($relId);
-                $view->total = $items->isEmpty() ? 0 : 1;
+                $view->items = $items->get($rel_id);
+                $view->total = $items->is_empty() ? 0 : 1;
             }
-
             $status = 200;
         } catch (\Aimeos\Controller\Frontend\Customer\Exception $e) {
             $status = 403;
-            $view->errors = $this->getErrorDetails($e, 'controller/frontend');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'controller/frontend');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Updates the resource or the resource list partitially
      *
@@ -236,47 +213,39 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function patch(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function patch(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $body = (string) $request->getBody();
-
+            $body = (string) $request->get_body();
             if (($payload = json_decode($body)) === null || !isset($payload->data->attributes)) {
-                throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
             }
-
             $status = 404;
             $view->total = 0;
-            $relId = $view->param('relatedid');
-
+            $rel_id = $view->param('relatedid');
             $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'customer');
-            $items = $cntl->uses(['customer/property'])->get()->getPropertyItems();
-
-            if (($item = $items->get($relId)) !== null) {
+            $items = $cntl->uses(['customer/property'])->get()->get_property_items();
+            if (($item = $items->get($rel_id)) !== null) {
                 $attributes = (array) $payload->data->attributes;
-                $propItem = $item->fromArray($attributes);
-                $cntl->addPropertyItem($propItem)->store();
-
-                $view->items = $propItem;
+                $prop_item = $item->from_array($attributes);
+                $cntl->add_property_item($prop_item)->store();
+                $view->items = $prop_item;
                 $view->total = 1;
                 $status = 200;
             }
         } catch (\Aimeos\Controller\Frontend\Customer\Exception $e) {
             $status = 403;
-            $view->errors = $this->getErrorDetails($e, 'controller/frontend');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'controller/frontend');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Creates or updates the resource or the resource list
      *
@@ -284,49 +253,40 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function post(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function post(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
-            $body = (string) $request->getBody();
-
+            $body = (string) $request->get_body();
             if (($payload = json_decode($body)) === null || !isset($payload->data)) {
-                throw new \Aimeos\Client\JsonApi\Exception('Invalid JSON in body', 400);
+                throw new \Aimeos\Client\Json_Api\Exception('Invalid JSON in body', 400);
             }
-
             if (!is_array($payload->data)) {
                 $payload->data = [$payload->data];
             }
-
             $cntl = \Aimeos\Controller\Frontend::create($this->context(), 'customer')->uses(['customer/property']);
-
             foreach ($payload->data as $entry) {
                 if (!isset($entry->attributes)) {
-                    throw new \Aimeos\Client\JsonApi\Exception('Attributes are missing', 400);
+                    throw new \Aimeos\Client\Json_Api\Exception('Attributes are missing', 400);
                 }
-
-                $propItem = $cntl->createPropertyItem((array) $entry->attributes);
-                $cntl->addPropertyItem($propItem);
+                $prop_item = $cntl->create_property_item((array) $entry->attributes);
+                $cntl->add_property_item($prop_item);
             }
-
-            $view->items = $cntl->store()->get()->getPropertyItems();
+            $view->items = $cntl->store()->get()->get_property_items();
             $view->total = count($view->items);
             $status = 201;
         } catch (\Aimeos\Controller\Frontend\Customer\Exception $e) {
             $status = 403;
-            $view->errors = $this->getErrorDetails($e, 'controller/frontend');
-        } catch (\Aimeos\MShop\Exception $e) {
+            $view->errors = $this->get_error_details($e, 'controller/frontend');
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         return $this->render($response, $view, $status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -334,37 +294,15 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
-        $view->attributes = [
-            'customer.property.type' => [
-                'label' => 'Code of the property type',
-                'type' => 'string', 'default' => '', 'required' => true,
-            ],
-            'customer.property.languageid' => [
-                'label' => 'Two or five letter ISO language code, e.g. "de" or "de_CH"',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-            'customer.property.value' => [
-                'label' => 'Arbitrary property value',
-                'type' => 'string', 'default' => '', 'required' => false,
-            ],
-        ];
-
+        $view->attributes = ['customer.property.type' => ['label' => 'Code of the property type', 'type' => 'string', 'default' => '', 'required' => true], 'customer.property.languageid' => ['label' => 'Two or five letter ISO language code, e.g. "de" or "de_CH"', 'type' => 'string', 'default' => '', 'required' => false], 'customer.property.value' => ['label' => 'Arbitrary property value', 'type' => 'string', 'default' => '', 'required' => false]];
         $tplconf = 'client/jsonapi/template-options';
         $default = 'options-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus(200);
+        return $response->with_header('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status(200);
     }
-
     /**
      * Returns the response object with the rendered header and body
      *
@@ -373,7 +311,7 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param int $status HTTP status code
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function render(ResponseInterface $response, \Aimeos\Base\View\Iface $view, int $status): \Psr\Http\Message\ResponseInterface
+    protected function render(Response_Interface $response, \Aimeos\Base\View\Iface $view, int $status): \Psr\Http\Message\Response_Interface
     {
         /** client/jsonapi/customer/property/template
          * Relative path to the customer property JSON API template
@@ -396,13 +334,7 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
          */
         $tplconf = 'client/jsonapi/customer/property/template';
         $default = 'customer/property/standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')
-            ->withHeader('Cache-Control', 'no-cache, private')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'DELETE,GET,OPTIONS,PATCH,POST')->with_header('Cache-Control', 'no-cache, private')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
 }

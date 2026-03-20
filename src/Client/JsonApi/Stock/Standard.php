@@ -1,26 +1,23 @@
 <?php
 
-declare(strict_types=1);
-
+declare (strict_types=1);
 /**
  * @license LGPLv3, http://opensource.org/licenses/LGPL-3.0
  * @copyright Aimeos (aimeos.org), 2017-2026
  * @package Client
  * @subpackage JsonApi
  */
+namespace Aimeos\Client\Json_Api\Stock;
 
-namespace Aimeos\Client\JsonApi\Stock;
-
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-
+use Psr\Http\Message\Response_Interface;
+use Psr\Http\Message\Server_Request_Interface;
 /**
  * JSON API standard client
  *
  * @package Client
  * @subpackage JsonApi
  */
-class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\JsonApi\Iface
+class Standard extends \Aimeos\Client\Json_Api\Base implements \Aimeos\Client\Json_Api\Iface
 {
     /** client/jsonapi/stock/name
      * Class name of the used stock client implementation
@@ -55,7 +52,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @since 2017.03
      * @category Developer
      */
-
     /** client/jsonapi/stock/decorators/excludes
      * Excludes decorators added by the "common" option from the JSON API clients
      *
@@ -81,7 +77,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/stock/decorators/global
      * @see client/jsonapi/stock/decorators/local
      */
-
     /** client/jsonapi/stock/decorators/global
      * Adds a list of globally available decorators only to the JsonApi client
      *
@@ -107,7 +102,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/stock/decorators/excludes
      * @see client/jsonapi/stock/decorators/local
      */
-
     /** client/jsonapi/stock/decorators/local
      * Adds a list of local decorators only to the JsonApi client
      *
@@ -133,7 +127,6 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @see client/jsonapi/stock/decorators/excludes
      * @see client/jsonapi/stock/decorators/global
      */
-
     /**
      * Returns the resource or the resource list
      *
@@ -141,26 +134,23 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function get(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function get(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
         try {
             if ($view->param('id')) {
-                $response = $this->getItem($view, $request, $response);
+                $response = $this->get_item($view, $request, $response);
             } else {
-                $response = $this->getItems($view, $request, $response);
+                $response = $this->get_items($view, $request, $response);
             }
-
             $status = 200;
-        } catch (\Aimeos\MShop\Exception $e) {
+        } catch (\Aimeos\M_Shop\Exception $e) {
             $status = 404;
-            $view->errors = $this->getErrorDetails($e, 'mshop');
+            $view->errors = $this->get_error_details($e, 'mshop');
         } catch (\Exception $e) {
-            $status = $e->getCode() >= 100 && $e->getCode() < 600 ? $e->getCode() : 500;
-            $view->errors = $this->getErrorDetails($e);
+            $status = $e->get_code() >= 100 && $e->get_code() < 600 ? $e->get_code() : 500;
+            $view->errors = $this->get_error_details($e);
         }
-
         /** client/jsonapi/stock/template
          * Relative path to the catalog lists JSON API template
          *
@@ -182,16 +172,9 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
          */
         $tplconf = 'client/jsonapi/stock/template';
         $default = 'stock/standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'no-cache, private')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus($status);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'no-cache, private')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status($status);
     }
-
     /**
      * Returns the available REST verbs and the available parameters
      *
@@ -199,37 +182,15 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    public function options(ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    public function options(Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $view = $this->view();
-
-        $view->filter = [
-            's_prodid' => [
-                'label' => 'List of product IDs for which the stock level should be returned',
-                'type' => 'array', 'default' => '[]', 'required' => false,
-            ],
-            's_prodcode' => [
-                'label' => 'Deprecated: List of product codes for which the stock level should be returned',
-                'type' => 'array', 'default' => '[]', 'required' => false,
-            ],
-            's_typecode' => [
-                'label' => 'List of warehouse/location codes (stock type)',
-                'type' => 'array', 'default' => '[]', 'required' => false,
-            ],
-        ];
-
+        $view->filter = ['s_prodid' => ['label' => 'List of product IDs for which the stock level should be returned', 'type' => 'array', 'default' => '[]', 'required' => false], 's_prodcode' => ['label' => 'Deprecated: List of product codes for which the stock level should be returned', 'type' => 'array', 'default' => '[]', 'required' => false], 's_typecode' => ['label' => 'List of warehouse/location codes (stock type)', 'type' => 'array', 'default' => '[]', 'required' => false]];
         $tplconf = 'client/jsonapi/template-options';
         $default = 'options-standard';
-
         $body = $view->render($view->config($tplconf, $default));
-
-        return $response->withHeader('Allow', 'GET,OPTIONS')
-            ->withHeader('Cache-Control', 'max-age=300')
-            ->withHeader('Content-Type', 'application/vnd.api+json')
-            ->withBody($view->response()->createStreamFromString($body))
-            ->withStatus(200);
+        return $response->with_header('Allow', 'GET,OPTIONS')->with_header('Cache-Control', 'max-age=300')->with_header('Content-Type', 'application/vnd.api+json')->with_body($view->response()->create_stream_from_string($body))->with_status(200);
     }
-
     /**
      * Retrieves the item and adds the data to the view
      *
@@ -238,20 +199,16 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function getItem(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function get_item(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $ref = $view->param('include', []);
-
         if (is_string($ref)) {
             $ref = explode(',', str_replace('.', '/', $ref));
         }
-
         $view->items = \Aimeos\Controller\Frontend::create($this->context(), 'stock')->uses($ref)->get($view->param('id'));
         $view->total = 1;
-
         return $response;
     }
-
     /**
      * Retrieves the items and adds the data to the view
      *
@@ -260,38 +217,25 @@ class Standard extends \Aimeos\Client\JsonApi\Base implements \Aimeos\Client\Jso
      * @param \Psr\Http\Message\ResponseInterface $response Response object
      * @return \Psr\Http\Message\ResponseInterface Modified response object
      */
-    protected function getItems(\Aimeos\Base\View\Iface $view, ServerRequestInterface $request, ResponseInterface $response): \Psr\Http\Message\ResponseInterface
+    protected function get_items(\Aimeos\Base\View\Iface $view, Server_Request_Interface $request, Response_Interface $response): \Psr\Http\Message\Response_Interface
     {
         $total = 0;
         $params = $view->param('filter', []);
-        $prodIds = (array) $view->param('filter/s_prodid', []);
-
-        if (isset($params['s_prodcode'])) { // backwards compatibility
-            $manager = \Aimeos\MShop::create($this->context(), 'product');
-            $filter = $manager->filter()
-                ->slice(0, count((array) $params['s_prodcode']))
-                ->add(['product.code' => $view->param('filter/s_prodcode')]);
-
-            $prodIds = array_merge($prodIds, $manager->search($filter)->keys()->toArray());
+        $prod_ids = (array) $view->param('filter/s_prodid', []);
+        if (isset($params['s_prodcode'])) {
+            // backwards compatibility
+            $manager = \Aimeos\M_Shop::create($this->context(), 'product');
+            $filter = $manager->filter()->slice(0, count((array) $params['s_prodcode']))->add(['product.code' => $view->param('filter/s_prodcode')]);
+            $prod_ids = array_merge($prod_ids, $manager->search($filter)->keys()->to_array());
         }
-
         unset($params['s_prodid'], $params['s_prodcode'], $params['s_typecode']);
-
         $ref = $view->param('include', []);
-
         if (is_string($ref)) {
             $ref = explode(',', str_replace('.', '/', $ref));
         }
-
-        $items = \Aimeos\Controller\Frontend::create($this->context(), 'stock')->uses($ref)
-            ->slice($view->param('page/offset', 0), $view->param('page/limit', 100))
-            ->product($prodIds)->type($view->param('filter/s_typecode'))
-            ->sort($view->param('sort'))->parse($params)
-            ->search($total);
-
+        $items = \Aimeos\Controller\Frontend::create($this->context(), 'stock')->uses($ref)->slice($view->param('page/offset', 0), $view->param('page/limit', 100))->product($prod_ids)->type($view->param('filter/s_typecode'))->sort($view->param('sort'))->parse($params)->search($total);
         $view->items = $items;
         $view->total = $total;
-
         return $response;
     }
 }
